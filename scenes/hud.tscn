@@ -1,0 +1,52 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/hud.gd" id="1_hud"]
+
+[node name="HUD" type="CanvasLayer"]
+; 3 = PROCESS_MODE_ALWAYS (2는 WHEN_PAUSED라 평소에 멈춘다)
+process_mode = 3
+script = ExtResource("1_hud")
+
+[node name="HealthBar" type="ProgressBar" parent="."]
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 260.0
+offset_bottom = 38.0
+show_percentage = false
+
+[node name="HealthLabel" type="Label" parent="."]
+offset_left = 268.0
+offset_top = 19.0
+offset_right = 380.0
+offset_bottom = 41.0
+text = "0/0"
+
+[node name="ExperienceBar" type="ProgressBar" parent="."]
+offset_left = 20.0
+offset_top = 46.0
+offset_right = 260.0
+offset_bottom = 56.0
+show_percentage = false
+
+[node name="LevelLabel" type="Label" parent="."]
+offset_left = 268.0
+offset_top = 40.0
+offset_right = 380.0
+offset_bottom = 62.0
+text = "Lv.0"
+
+[node name="TimeLabel" type="Label" parent="."]
+offset_left = 1140.0
+offset_top = 20.0
+offset_right = 1260.0
+offset_bottom = 44.0
+horizontal_alignment = 2
+text = "0:00"
+
+[node name="KillLabel" type="Label" parent="."]
+offset_left = 1080.0
+offset_top = 48.0
+offset_right = 1260.0
+offset_bottom = 72.0
+horizontal_alignment = 2
+text = "처치 0"

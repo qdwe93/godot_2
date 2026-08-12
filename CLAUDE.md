@@ -138,6 +138,9 @@ Godot 4.7에서는 `Variant` 값으로부터 `:=` 타입을 추론하는 선언�
 - 문서 내용은 한글, 파일명은 영문 (인코딩 문제 회피)
 - 커밋 메시지는 한글. 예: `M1: 플레이어 WASD 이동 구현`
 - `.godot/` 는 커밋하지 않는다 (.gitignore 처리 완료)
+- **`process_mode` 값은 기억으로 쓰지 말 것.** 실제 값은 `INHERIT=0, PAUSABLE=1, WHEN_PAUSED=2, ALWAYS=3, DISABLED=4`. 2와 3을 바꿔 쓰면 **평소에 멈춰 있는 노드**가 되는데 에러는 안 난다. 확신이 없으면 `print(Node.PROCESS_MODE_ALWAYS)`로 한 줄 확인한다
+  - 일시정지 중에도 눌려야 하는 UI(레벨업 3택) → `3`(ALWAYS) 또는 `2`(WHEN_PAUSED)
+  - 항상 갱신돼야 하는 HUD → 반드시 `3`(ALWAYS)
 - GDScript 람다는 지역 변수를 **값으로 캡처**한다. 람다 안에서 지역 변수를 증가시켜도 바깥 값은 그대로다. 시그널 발생 횟수 같은 카운터는 멤버 변수나 Array 같은 참조형에 담아야 한다
 
 ### `.tscn` 편집
@@ -152,7 +155,7 @@ Godot 4.7에서는 `Variant` 값으로부터 `:=` 타입을 추론하는 선언�
 ## 전체 테스트 스위트 (한 번에 돌리기)
 
 ```powershell
-foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_player_damage","test_experience","test_level_up_ui","test_upgrades","test_upgrade_limits","test_new_weapons","test_waves","test_boss_and_separation")) { $r = & "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" --quit-after 3600 "res://tests/$t.tscn" 2>&1 | Select-String -Pattern "TEST_RESULT|TEST_ERROR"; "$t => $r (exit=$LASTEXITCODE)" }
+foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_player_damage","test_experience","test_level_up_ui","test_upgrades","test_upgrade_limits","test_new_weapons","test_waves","test_boss_and_separation","test_hud")) { $r = & "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" --quit-after 3600 "res://tests/$t.tscn" 2>&1 | Select-String -Pattern "TEST_RESULT|TEST_ERROR"; "$t => $r (exit=$LASTEXITCODE)" }
 ```
 
 | 스위트 | 케이스 | 검증 내용 |
@@ -168,6 +171,7 @@ foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_p
 | `test_new_weapons` | 5 | 잠금 상태 무동작, 산탄 3발, 부채꼴 각도, 궤도구 추종, 적별 피해 제한 |
 | `test_waves` | 6 | 페이즈 경계, 간격 단축, 다중 스폰, HP 배율, 변종 스탯, 레거시 모드 |
 | `test_boss_and_separation` | 6 | 보스 1회 스폰, 보스 스탯, 화면 밖, 적 분리, 추적 유지, 분리 비활성화 |
+| `test_hud` | 6 | 초기 표시값, HP 반영, 경험치·레벨, 킬 카운트, 타이머 서식, 사망 시 정지 |
 
 > **테스트 실행에 `--quit-after 3600`을 반드시 붙인다.** 테스트 스크립트가 파싱 실패하면 `quit()`이 호출되지 않아 **프로세스가 무한 대기**한다. `TEST_ERROR` 보호 장치는 스크립트가 로드된 뒤에야 작동하므로 이 경우를 못 막는다.
 
