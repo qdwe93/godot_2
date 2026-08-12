@@ -63,7 +63,7 @@ func _finish_suite() -> void:
 			"TEST_ERROR missing_cases expected=%d recorded=%d"
 			% [EXPECTED_CASE_COUNT, recorded_count]
 		)
-	var all_passed := passed_count > 0 and failed_count == 0 and has_all_cases
+	var all_passed := passed_count == EXPECTED_CASE_COUNT and failed_count == 0 and has_all_cases
 	print(
 		"TEST_RESULT %s passed=%d failed=%d skipped=%d"
 		% [_verdict(all_passed), passed_count, failed_count, skipped_count]
@@ -145,27 +145,6 @@ func _test_screen_bounds_clamp(player: CharacterBody2D) -> void:
 	var body_radius: float = float(player.get("body_radius"))
 	var minimum_position := Vector2(body_radius, body_radius)
 	var maximum_position := project_viewport_size - minimum_position
-	if DisplayServer.get_name() == "headless":
-		_record_skipped_case(
-			"screen_bounds_clamp",
-			(
-				"headless does not report a correct viewport size; screen bounds require "
-				+ "a windowed run project_settings=(%.3f,%.3f) "
-				+ "project_bounds=(%.3f,%.3f)-(%.3f,%.3f) "
-				+ "runtime_viewport=(%.3f,%.3f)"
-			)
-			% [
-				project_viewport_size.x,
-				project_viewport_size.y,
-				minimum_position.x,
-				minimum_position.y,
-				maximum_position.x,
-				maximum_position.y,
-				runtime_viewport_size.x,
-				runtime_viewport_size.y,
-			]
-		)
-		return
 
 	player.global_position = Vector2(5000.0, 5000.0)
 	await _advance_physics(CLAMP_FRAMES)

@@ -70,7 +70,7 @@ Godot_v4.7.1-stable_win64_console.exe --headless --path <project> res://tests/te
 
 - `TEST_CASE <이름> <PASS|FAIL|SKIP> <상세>`는 개별 케이스 결과, `TEST_RESULT <PASS|FAIL> passed=<n> failed=<n> skipped=<n>`은 최종 결과다. `SKIP`은 통과 수에 포함하지 않는다.
 - 전체 통과 시 종료 코드 0, 실패 시 1을 반환한다.
-- **화면 크기에 의존하는 검증은 헤드리스에서 불가능하다.** 헤드리스는 뷰포트 높이를 잘못 보고하므로 bounds 관련 테스트는 `--headless`를 빼고 창 모드로 실행한다.
+- 이동 bounds 테스트는 헤드리스에서도 실행한다. 창 모드는 시각·캡처 검증에만 필요하다.
 
 ### M2 적 생성·추적 자동 테스트
 
