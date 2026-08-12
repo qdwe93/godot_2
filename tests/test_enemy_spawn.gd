@@ -237,6 +237,9 @@ func _create_setup(interval: float, cap: int) -> Dictionary:
 	var spawner: Node = ENEMY_SPAWNER_SCRIPT.new() as Node
 	spawner.name = "EnemySpawner"
 	spawner.set("enemy_scene", ENEMY_SCENE)
+	# 이 스위트는 수동 설정 동작을 검증한다. 웨이브 곡선을 켜두면 페이즈 값이
+	# spawn_interval / max_enemies 를 덮어써서 검증 대상이 바뀐다.
+	spawner.set("use_wave_data", false)
 	spawner.set("spawn_interval", interval)
 	spawner.set("max_enemies", cap)
 	spawner.set("enemy_container_path", NodePath("../EnemyContainer"))

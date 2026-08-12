@@ -10,6 +10,7 @@ signal died(enemy_position: Vector2)
 
 var target: Node2D = null
 var health: float
+var variant_id: StringName = &"basic"
 
 var _dead := false
 
