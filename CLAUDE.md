@@ -149,4 +149,19 @@ Godot 4.7에서는 `Variant` 값으로부터 `:=` 타입을 추론하는 선언�
 - 노드 블록에서 `script = ExtResource(...)`는 **스크립트가 선언한 속성보다 먼저** 와야 한다. 순서가 뒤집히면 그 속성값은 조용히 버려진다 — 게임은 정상 실행되고 기능만 동작하지 않는다.
 - 시그널 연결은 **객체를 만드는 쪽에서 그 자리에서** 한다. `get_tree().node_added` 같은 전역 훅으로 대신하지 않는다. 전역 훅은 모든 노드에 반응하고, 이름이 같은 시그널을 가진 무관한 노드까지 걸린다.
 
-- 경험치 수집 테스트: `godot --headless --path . res://tests/test_experience.tscn`
+## 전체 테스트 스위트 (한 번에 돌리기)
+
+```powershell
+foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_player_damage","test_experience","test_level_up_ui")) { $r = & "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" "res://tests/$t.tscn" 2>&1 | Select-String -Pattern "TEST_RESULT|TEST_ERROR"; "$t => $r (exit=$LASTEXITCODE)" }
+```
+
+| 스위트 | 케이스 | 검증 내용 |
+|---|---|---|
+| `test_player_movement` | 3 | 이동량, 대각선 정규화, 화면 경계 |
+| `test_enemy_spawn` | 4 | 주기 스폰, 화면 밖 위치, 추적, 개수 상한 |
+| `test_weapon` | 7 | 조준·사거리·경계값, 명중/사망, 수명, 무한증식 방지 |
+| `test_player_damage` | 5 | 접촉 피해, 무적, 지속 접촉 재피격, 사망, 사망 후 적 생존 |
+| `test_experience` | 5 | 젬 드랍, 자석 범위, 수집, 곡선, 다중 레벨업 |
+| `test_level_up_ui` | 5 | 일시정지, 3택 중복 없음, 일시정지 중 처리, 재개, 연속 레벨업 대기열 |
+
+전부 `TEST_RESULT PASS`와 종료 코드 0이어야 한다. `TEST_ERROR`가 보이면 케이스가 실행조차 안 된 것이다.
