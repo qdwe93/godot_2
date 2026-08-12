@@ -62,6 +62,16 @@ PATH에 없으므로 항상 전체 경로로 호출한다.
 - 종료 코드 0 + 스크립트가 출력하는 부팅 토큰(`M0_BOOT_OK` 등) 확인
 - 런타임 에러는 stderr에 찍히므로 `2>&1`로 합쳐서 본다
 
+### M1 플레이어 이동 자동 테스트
+
+```powershell
+Godot_v4.7.1-stable_win64_console.exe --headless --path <project> res://tests/test_player_movement.tscn
+```
+
+- `TEST_CASE <이름> <PASS|FAIL|SKIP> <상세>`는 개별 케이스 결과, `TEST_RESULT <PASS|FAIL> passed=<n> failed=<n> skipped=<n>`은 최종 결과다. `SKIP`은 통과 수에 포함하지 않는다.
+- 전체 통과 시 종료 코드 0, 실패 시 1을 반환한다.
+- **화면 크기에 의존하는 검증은 헤드리스에서 불가능하다.** 헤드리스는 뷰포트 높이를 잘못 보고하므로 bounds 관련 테스트는 `--headless`를 빼고 창 모드로 실행한다.
+
 ### 문법만 검사
 
 ```powershell
