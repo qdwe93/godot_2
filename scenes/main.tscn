@@ -66,7 +66,7 @@ script = ExtResource("3_capture")
 [node name="LevelUpUI" parent="." instance=ExtResource("8_level_up_ui")]
 level_system_path = NodePath("../Player/LevelSystem")
 
-[node name="UpgradeManager" type="Node" parent="."]
+[node name="UpgradeManager" type="Node" parent="." groups=["upgrade_manager"]]
 script = ExtResource("9_upgrade_manager")
 level_up_ui_path = NodePath("../LevelUpUI")
 player_path = NodePath("../Player")

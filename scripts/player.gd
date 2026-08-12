@@ -119,4 +119,8 @@ func add_experience(amount: float) -> void:
 			push_error("Player is missing LevelSystem.")
 			level_system_reported = true
 		return
-	level_system.call("add_experience", amount)
+	var experience_amount: float = amount
+	var upgrade_manager: Node = get_tree().get_first_node_in_group("upgrade_manager")
+	if is_instance_valid(upgrade_manager) and upgrade_manager.has_method("get_experience_multiplier"):
+		experience_amount *= float(upgrade_manager.call("get_experience_multiplier"))
+	level_system.call("add_experience", experience_amount)

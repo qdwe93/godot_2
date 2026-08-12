@@ -4,12 +4,12 @@ signal upgrade_chosen(id: StringName)
 
 @export var level_system_path: NodePath
 
-const UPGRADE_POOL: Array[Dictionary] = [
-	{"id": &"shoes", "label": "신발 - 이동 속도 +10%"},
-	{"id": &"heart", "label": "심장 - 최대 HP +20"},
-	{"id": &"magnet", "label": "자석 - 수집 범위 +30%"},
-	{"id": &"gloves", "label": "장갑 - 공격 쿨다운 -8%"},
-	{"id": &"crown", "label": "왕관 - 경험치 획득 +10%"},
+const UPGRADE_POOL: Array[StringName] = [
+	&"shoes",
+	&"heart",
+	&"magnet",
+	&"gloves",
+	&"crown",
 ]
 
 var last_choice: StringName = &""
@@ -46,22 +46,50 @@ func _on_leveled_up(new_level: int) -> void:
 
 
 func _show_next_level_up() -> void:
-	if _pending_levels.is_empty():
+	while not _pending_levels.is_empty():
+		var level_number: int = _pending_levels.pop_front()
+		_choice_ids.clear()
+		var available: Array[StringName] = _get_available_upgrade_ids()
+		for choice_index in range(3):
+			var button: Button = get_node("Choices/Choice%d" % choice_index)
+			button.visible = false
+
+		if available.is_empty():
+			visible = false
+			print("LEVELUP_UI_SKIPPED level=%d" % level_number)
+			continue
+
+		var choice_count: int = mini(3, available.size())
+		for choice_index in range(choice_count):
+			var random_index: int = randi_range(0, available.size() - 1)
+			var upgrade_id: StringName = available.pop_at(random_index)
+			var definition: Dictionary = UpgradeData.get_definition(upgrade_id)
+			var upgrade_label: String = str(definition.get("label", str(upgrade_id)))
+			_choice_ids.append(upgrade_id)
+			var button: Button = get_node("Choices/Choice%d" % choice_index)
+			button.text = upgrade_label
+			button.visible = true
+		visible = true
+		get_tree().paused = true
+		print("LEVELUP_UI_SHOWN level=%d choices=%s" % [level_number, _choice_text()])
 		return
-	var level_number: int = _pending_levels.pop_front()
-	_choice_ids.clear()
-	var available: Array[Dictionary] = UPGRADE_POOL.duplicate()
-	for choice_index in range(3):
-		var random_index: int = randi_range(0, available.size() - 1)
-		var upgrade: Dictionary = available.pop_at(random_index)
-		var upgrade_id: StringName = upgrade["id"]
-		var upgrade_label: String = upgrade["label"]
-		_choice_ids.append(upgrade_id)
-		var button: Button = get_node("Choices/Choice%d" % choice_index)
-		button.text = upgrade_label
-	visible = true
-	get_tree().paused = true
-	print("LEVELUP_UI_SHOWN level=%d choices=%s" % [level_number, _choice_text()])
+
+	visible = false
+	get_tree().paused = false
+
+
+func _get_available_upgrade_ids() -> Array[StringName]:
+	var available: Array[StringName] = []
+	var upgrade_manager: Node = get_tree().get_first_node_in_group("upgrade_manager")
+	for upgrade_id in UPGRADE_POOL:
+		var definition: Dictionary = UpgradeData.get_definition(upgrade_id)
+		var max_level: int = int(definition.get("max_level", 0))
+		var current_level: int = 0
+		if is_instance_valid(upgrade_manager) and upgrade_manager.has_method("get_level"):
+			current_level = int(upgrade_manager.call("get_level", upgrade_id))
+		if current_level < max_level:
+			available.append(upgrade_id)
+	return available
 
 
 func get_choice_ids() -> Array[StringName]:
