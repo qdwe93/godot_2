@@ -152,7 +152,7 @@ Godot 4.7에서는 `Variant` 값으로부터 `:=` 타입을 추론하는 선언�
 ## 전체 테스트 스위트 (한 번에 돌리기)
 
 ```powershell
-foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_player_damage","test_experience","test_level_up_ui","test_upgrades","test_upgrade_limits","test_new_weapons","test_waves")) { $r = & "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" "res://tests/$t.tscn" 2>&1 | Select-String -Pattern "TEST_RESULT|TEST_ERROR"; "$t => $r (exit=$LASTEXITCODE)" }
+foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_player_damage","test_experience","test_level_up_ui","test_upgrades","test_upgrade_limits","test_new_weapons","test_waves","test_boss_and_separation")) { $r = & "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" --quit-after 3600 "res://tests/$t.tscn" 2>&1 | Select-String -Pattern "TEST_RESULT|TEST_ERROR"; "$t => $r (exit=$LASTEXITCODE)" }
 ```
 
 | 스위트 | 케이스 | 검증 내용 |
@@ -167,6 +167,9 @@ foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_p
 | `test_upgrade_limits` | 5 | 왕관 경험치 배율, 매니저 부재 시 안전, 상한 도달 제외, 선택지 2개, 0개 시 화면 생략 |
 | `test_new_weapons` | 5 | 잠금 상태 무동작, 산탄 3발, 부채꼴 각도, 궤도구 추종, 적별 피해 제한 |
 | `test_waves` | 6 | 페이즈 경계, 간격 단축, 다중 스폰, HP 배율, 변종 스탯, 레거시 모드 |
+| `test_boss_and_separation` | 6 | 보스 1회 스폰, 보스 스탯, 화면 밖, 적 분리, 추적 유지, 분리 비활성화 |
+
+> **테스트 실행에 `--quit-after 3600`을 반드시 붙인다.** 테스트 스크립트가 파싱 실패하면 `quit()`이 호출되지 않아 **프로세스가 무한 대기**한다. `TEST_ERROR` 보호 장치는 스크립트가 로드된 뒤에야 작동하므로 이 경우를 못 막는다.
 
 > **무인 실행은 첫 레벨업에서 멈춘다.** 3택 UI가 일시정지한 채 입력을 기다리기 때문이다. 장시간 밸런스 측정을 하려면 진단 스크립트가 `level_ui.choose(0)`으로 자동 선택해야 한다.
 

@@ -7,12 +7,17 @@ signal died(enemy_position: Vector2)
 @export var speed: float = 60.0
 @export var max_health: float = 10.0
 @export var contact_damage: float = 5.0
+@export var separation_radius: float = 26.0
+@export var separation_weight: float = 0.6
+@export var separation_update_interval: int = 4
+@export var separation_max_neighbours: int = 12
 
 var target: Node2D = null
 var health: float
 var variant_id: StringName = &"basic"
 
 var _dead := false
+var _separation_vector: Vector2 = Vector2.ZERO
 
 
 func _ready() -> void:
@@ -24,9 +29,56 @@ func _physics_process(_delta: float) -> void:
 		velocity = Vector2.ZERO
 		return
 
-	var direction := (target.global_position - global_position).normalized()
+	var direction: Vector2 = (target.global_position - global_position).normalized()
+	if separation_weight != 0.0:
+		_update_separation_if_needed()
+		var combined_direction: Vector2 = direction + _separation_vector * separation_weight
+		if combined_direction.length_squared() > 0.0:
+			direction = combined_direction.normalized()
 	velocity = direction * speed
 	move_and_slide()
+
+
+func _update_separation_if_needed() -> void:
+	if separation_radius <= 0.0 or separation_max_neighbours <= 0:
+		_separation_vector = Vector2.ZERO
+		return
+
+	var should_update: bool = separation_update_interval <= 1
+	if not should_update:
+		var physics_frame: int = Engine.get_physics_frames()
+		var phase: int = int(get_instance_id() % separation_update_interval)
+		should_update = physics_frame % separation_update_interval == phase
+	if not should_update:
+		return
+
+	var separation_sum: Vector2 = Vector2.ZERO
+	var neighbours_found: int = 0
+	var radius_squared: float = separation_radius * separation_radius
+	var self_id: int = get_instance_id()
+	for candidate in get_tree().get_nodes_in_group(&"enemies"):
+		if candidate == self or not candidate is Node2D:
+			continue
+		var neighbour: Node2D = candidate
+		if not is_instance_valid(neighbour):
+			continue
+		var offset: Vector2 = global_position - neighbour.global_position
+		var distance_squared: float = offset.length_squared()
+		if distance_squared >= radius_squared:
+			continue
+		if distance_squared > 0.0:
+			separation_sum += offset / sqrt(distance_squared)
+		else:
+			var neighbour_id: int = neighbour.get_instance_id()
+			separation_sum += Vector2.LEFT if self_id < neighbour_id else Vector2.RIGHT
+		neighbours_found += 1
+		if neighbours_found >= separation_max_neighbours:
+			break
+
+	if separation_sum.length_squared() > 0.0:
+		_separation_vector = separation_sum.normalized()
+	else:
+		_separation_vector = Vector2.ZERO
 
 
 func take_damage(amount: float) -> void:

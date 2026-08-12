@@ -1,4 +1,4 @@
-[gd_scene load_steps=10 format=3 uid="uid://dktangm0setup"]
+[gd_scene load_steps=11 format=3 uid="uid://dktangm0setup"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2_player"]
@@ -10,6 +10,7 @@
 [ext_resource type="Script" path="res://scripts/pickup_spawner.gd" id="7_pickup_spawner"]
 [ext_resource type="PackedScene" path="res://scenes/level_up_ui.tscn" id="8_level_up_ui"]
 [ext_resource type="Script" path="res://scripts/upgrade_manager.gd" id="9_upgrade_manager"]
+[ext_resource type="Script" path="res://scripts/boss_spawner.gd" id="10_boss_spawner"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
@@ -46,7 +47,7 @@ offset_left = 535.0
 offset_top = 20.0
 offset_right = 745.0
 offset_bottom = 50.0
-text = "M6: 업그레이드 효과"
+text = "M7: 웨이브와 보스"
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -70,3 +71,10 @@ level_system_path = NodePath("../Player/LevelSystem")
 script = ExtResource("9_upgrade_manager")
 level_up_ui_path = NodePath("../LevelUpUI")
 player_path = NodePath("../Player")
+
+[node name="BossSpawner" type="Node" parent="."]
+script = ExtResource("10_boss_spawner")
+enemy_scene = ExtResource("4_enemy")
+spawn_time = 300.0
+enemy_container_path = NodePath("../EnemyContainer")
+target_path = NodePath("../Player")
