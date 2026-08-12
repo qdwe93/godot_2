@@ -2,11 +2,13 @@ extends Node2D
 
 
 const PLAYER_SCENE := preload("res://scenes/player.tscn")
+const EXPECTED_CASE_COUNT := 3
 const SCREEN_CENTER := Vector2(640.0, 360.0)
 const MOVEMENT_FRAMES := 30
 const MOVEMENT_TOLERANCE := 0.05
 const Y_TOLERANCE := 1.0
 const CLAMP_FRAMES := 3
+const MEASUREMENT_EPSILON := 0.001
 
 var passed_count := 0
 var failed_count := 0
@@ -14,14 +16,54 @@ var skipped_count := 0
 
 
 func _ready() -> void:
+	var setup_error: String = _validate_dependencies()
+	if not setup_error.is_empty():
+		print("TEST_ERROR setup_failed %s" % setup_error)
+		get_tree().quit(1)
+		return
+
 	var player := PLAYER_SCENE.instantiate() as CharacterBody2D
 	add_child(player)
 
-	var case_1_distance := await _test_horizontal_movement(player)
+	var case_1_distance: float = await _test_horizontal_movement(player)
 	await _test_diagonal_speed(player, case_1_distance)
 	await _test_screen_bounds_clamp(player)
 
-	var all_passed := failed_count == 0
+	_finish_suite()
+
+
+func _validate_dependencies() -> String:
+	if PLAYER_SCENE == null:
+		return "player scene did not load"
+	var player_node: Node = PLAYER_SCENE.instantiate()
+	if not player_node is CharacterBody2D:
+		player_node.free()
+		return "player scene root is not CharacterBody2D"
+	if player_node.get_script() == null:
+		player_node.free()
+		return "player script did not load"
+	if not player_node.has_method("_physics_process"):
+		player_node.free()
+		return "player is missing _physics_process()"
+	if not ("speed" in player_node) or not ("body_radius" in player_node):
+		player_node.free()
+		return "player is missing movement properties"
+	if not player_node.get_node_or_null("Hurtbox") is Area2D:
+		player_node.free()
+		return "player Hurtbox Area2D is missing"
+	player_node.free()
+	return ""
+
+
+func _finish_suite() -> void:
+	var recorded_count := passed_count + failed_count + skipped_count
+	var has_all_cases := recorded_count == EXPECTED_CASE_COUNT
+	if not has_all_cases:
+		print(
+			"TEST_ERROR missing_cases expected=%d recorded=%d"
+			% [EXPECTED_CASE_COUNT, recorded_count]
+		)
+	var all_passed := passed_count > 0 and failed_count == 0 and has_all_cases
 	print(
 		"TEST_RESULT %s passed=%d failed=%d skipped=%d"
 		% [_verdict(all_passed), passed_count, failed_count, skipped_count]
@@ -33,7 +75,7 @@ func _test_horizontal_movement(player: CharacterBody2D) -> float:
 	_release_movement_actions()
 	player.global_position = SCREEN_CENTER
 	var start_position := player.global_position
-	var speed := float(player.get("speed"))
+	var speed: float = float(player.get("speed"))
 	var expected_x := speed * MOVEMENT_FRAMES / float(Engine.physics_ticks_per_second)
 
 	Input.action_press("move_right")
@@ -43,7 +85,9 @@ func _test_horizontal_movement(player: CharacterBody2D) -> float:
 	var displacement := player.global_position - start_position
 	var x_tolerance := expected_x * MOVEMENT_TOLERANCE
 	var passed := (
-		absf(displacement.x - expected_x) <= x_tolerance
+		expected_x > MEASUREMENT_EPSILON
+		and displacement.length() > MEASUREMENT_EPSILON
+		and absf(displacement.x - expected_x) <= x_tolerance
 		and absf(displacement.y) < Y_TOLERANCE
 	)
 	_record_case(
@@ -70,7 +114,11 @@ func _test_diagonal_speed(player: CharacterBody2D, case_1_distance: float) -> vo
 	var displacement := player.global_position - start_position
 	var diagonal_distance := displacement.length()
 	var distance_tolerance := case_1_distance * MOVEMENT_TOLERANCE
-	var passed := absf(diagonal_distance - case_1_distance) <= distance_tolerance
+	var passed := (
+		diagonal_distance > MEASUREMENT_EPSILON
+		and case_1_distance > MEASUREMENT_EPSILON
+		and absf(diagonal_distance - case_1_distance) <= distance_tolerance
+	)
 	_record_case(
 		"diagonal_speed",
 		passed,
@@ -94,7 +142,7 @@ func _test_screen_bounds_clamp(player: CharacterBody2D) -> void:
 		float(ProjectSettings.get_setting("display/window/size/viewport_height"))
 	)
 	var runtime_viewport_size := get_viewport_rect().size
-	var body_radius := float(player.get("body_radius"))
+	var body_radius: float = float(player.get("body_radius"))
 	var minimum_position := Vector2(body_radius, body_radius)
 	var maximum_position := project_viewport_size - minimum_position
 	if DisplayServer.get_name() == "headless":

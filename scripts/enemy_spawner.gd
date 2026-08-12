@@ -85,5 +85,11 @@ func spawn_one() -> Node:
 	return enemy
 
 
+func stop() -> void:
+	_spawning_enabled = false
+	if is_instance_valid(_spawn_timer):
+		_spawn_timer.stop()
+
+
 func _on_spawn_timer_timeout() -> void:
 	spawn_one()

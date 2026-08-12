@@ -33,7 +33,17 @@ offset_left = 535.0
 offset_top = 20.0
 offset_right = 745.0
 offset_bottom = 50.0
-text = "M3: 자동 공격"
+text = "M4: 피격과 체력"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="GameOverLabel" type="Label" parent="."]
+visible = false
+offset_left = 540.0
+offset_top = 335.0
+offset_right = 740.0
+offset_bottom = 385.0
+text = "게임 오버"
 horizontal_alignment = 1
 vertical_alignment = 1
 

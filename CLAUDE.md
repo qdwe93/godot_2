@@ -88,11 +88,29 @@ Godot_v4.7.1-stable_win64_console.exe --headless --path <project> res://tests/te
 
 - 무표적 미발사, 최근접 조준, 피해·사망, 발사체 수명, 개수 상한을 헤드리스에서 검증한다.
 
+### M4 접촉 피해·체력·사망 자동 테스트
+
+```powershell
+Godot_v4.7.1-stable_win64_console.exe --headless --path <project> res://tests/test_player_damage.tscn
+```
+
+- 접촉 피해, 무적 시간, 지속 접촉 재피격, 사망, 사망 후 적 생존을 헤드리스에서 검증한다.
+
 ### 문법만 검사
 
 ```powershell
 & "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" --check-only -s "res://scripts/main.gd"
 ```
+
+#### 스크립트 변경 후 필수
+
+스크립트를 변경하면 검증자는 위 명령의 `-s` 경로를 바꿔 변경된 각 스크립트를 검사한다.
+
+```powershell
+& "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" --check-only -s "res://scripts/player.gd"
+```
+
+Godot 4.7에서는 `Variant` 값으로부터 `:=` 타입을 추론하는 선언이 경고가 아니라 파싱 오류다. `get()`, `get_setting()`, 타입 없는 딕셔너리 접근 등에는 명시적 타입을 쓴다.
 
 ### 창 모드 실행 (눈으로 확인할 때)
 

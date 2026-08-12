@@ -1,10 +1,13 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/weapon.gd" id="2_weapon"]
 [ext_resource type="PackedScene" path="res://scenes/projectile.tscn" id="3_projectile"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_player"]
+radius = 12.0
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_hurtbox"]
 radius = 12.0
 
 [node name="Player" type="CharacterBody2D"]
@@ -14,6 +17,13 @@ script = ExtResource("1_player")
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_player")
+
+[node name="Hurtbox" type="Area2D" parent="."]
+collision_layer = 0
+collision_mask = 2
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
+shape = SubResource("CircleShape2D_hurtbox")
 
 [node name="Sprite" type="ColorRect" parent="."]
 offset_left = -12.0
