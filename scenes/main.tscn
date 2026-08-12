@@ -6,6 +6,9 @@
 [ext_resource type="PackedScene" path="res://scenes/enemy.tscn" id="4_enemy"]
 [ext_resource type="Script" path="res://scripts/enemy_spawner.gd" id="5_spawner"]
 
+[ext_resource type="PackedScene" path="res://scenes/xp_gem.tscn" id="6_xp_gem"]
+[ext_resource type="Script" path="res://scripts/pickup_spawner.gd" id="7_pickup_spawner"]
+
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
 
@@ -19,11 +22,19 @@ mouse_filter = 2
 
 [node name="ProjectileContainer" type="Node2D" parent="." groups=["projectile_container"]]
 
+[node name="PickupContainer" type="Node2D" parent="."]
+
+[node name="PickupSpawner" type="Node" parent="."]
+script = ExtResource("7_pickup_spawner")
+gem_scene = ExtResource("6_xp_gem")
+gem_container_path = NodePath("../PickupContainer")
+
 [node name="Player" parent="." instance=ExtResource("2_player")]
 position = Vector2(640, 360)
 
 [node name="EnemySpawner" type="Node" parent="."]
 script = ExtResource("5_spawner")
+pickup_spawner_path = NodePath("../PickupSpawner")
 enemy_scene = ExtResource("4_enemy")
 enemy_container_path = NodePath("../EnemyContainer")
 target_path = NodePath("../Player")
@@ -33,7 +44,7 @@ offset_left = 535.0
 offset_top = 20.0
 offset_right = 745.0
 offset_bottom = 50.0
-text = "M4: 피격과 체력"
+text = "M5: 경험치 수집"
 horizontal_alignment = 1
 vertical_alignment = 1
 

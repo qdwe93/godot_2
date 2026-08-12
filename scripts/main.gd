@@ -24,6 +24,19 @@ func _ready() -> void:
 		else:
 			player.connect(&"died", _on_player_died)
 
+		var level_system := player.get_node_or_null("LevelSystem")
+		if level_system == null:
+			push_error("Main: required Player/LevelSystem node is missing; experience signals cannot be connected.")
+		else:
+			if not level_system.has_signal(&"experience_changed"):
+				push_error("Main: Player/LevelSystem is missing the required 'experience_changed' signal.")
+			else:
+				level_system.connect(&"experience_changed", _on_experience_changed)
+			if not level_system.has_signal(&"leveled_up"):
+				push_error("Main: Player/LevelSystem is missing the required 'leveled_up' signal.")
+			else:
+				level_system.connect(&"leveled_up", _on_leveled_up)
+
 	if _enemy_spawner == null:
 		push_error("Main: required EnemySpawner node is missing; spawning cannot be stopped on death.")
 	elif not _enemy_spawner.has_method("stop"):
@@ -41,8 +54,8 @@ func _ready() -> void:
 		if not InputMap.has_action(action_name) or InputMap.action_get_events(action_name).is_empty():
 			actions_ok = false
 
-	var version_string := str(Engine.get_version_info().get("string", "unknown"))
-	print("BOOT_OK milestone=M4 actions_ok=%s version=%s" % [actions_ok, version_string])
+	var version_string = str(Engine.get_version_info().get("string", "unknown"))
+	print("BOOT_OK milestone=M5a actions_ok=%s version=%s" % [actions_ok, version_string])
 
 
 func _process(delta: float) -> void:
@@ -64,3 +77,11 @@ func _on_player_died() -> void:
 		_enemy_spawner.call("stop")
 	if _game_over_label != null:
 		_game_over_label.show()
+
+
+func _on_experience_changed(current: float, required: float, level: int) -> void:
+	print("XP_GAINED current=%.3f required=%.3f level=%d" % [current, required, level])
+
+
+func _on_leveled_up(level: int) -> void:
+	print("LEVEL_UP level=%d" % level)

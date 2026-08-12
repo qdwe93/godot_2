@@ -1,5 +1,9 @@
 extends Node
 
+@export var pickup_spawner_path: NodePath
+
+var pickup_spawner: Node = null
+
 
 @export var enemy_scene: PackedScene
 @export var spawn_interval: float = 1.5
@@ -15,6 +19,8 @@ var _spawning_enabled := false
 
 
 func _ready() -> void:
+	if not pickup_spawner_path.is_empty():
+		pickup_spawner = get_node_or_null(pickup_spawner_path)
 	var container_node := get_node_or_null(enemy_container_path)
 	var target_node := get_node_or_null(target_path)
 	var configuration_valid := true
@@ -79,6 +85,9 @@ func spawn_one() -> Node:
 	var spawn_offset := Vector2(cos(angle), sin(angle)) * spawn_radius
 
 	enemy.set("target", _target)
+	if pickup_spawner != null and enemy.has_signal("died"):
+		var died_signal: Signal = enemy.get("died")
+		died_signal.connect(Callable(pickup_spawner, "on_enemy_died"))
 	_enemy_container.add_child(enemy)
 	enemy.global_position = screen_center + spawn_offset
 	enemy.add_to_group("enemies")
@@ -93,3 +102,5 @@ func stop() -> void:
 
 func _on_spawn_timer_timeout() -> void:
 	spawn_one()
+
+

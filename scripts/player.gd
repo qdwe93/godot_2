@@ -1,5 +1,11 @@
 extends CharacterBody2D
 
+@onready var magnet_area: Area2D = get_node_or_null("MagnetArea") as Area2D
+@onready var level_system: Node = get_node_or_null("LevelSystem")
+
+var magnet_setup_reported: bool = false
+var level_system_reported: bool = false
+
 signal health_changed(current: float, maximum: float)
 signal died()
 
@@ -17,6 +23,9 @@ var _hurtbox: Area2D
 
 
 func _ready() -> void:
+	if magnet_area == null:
+		push_error("Player is missing MagnetArea.")
+		magnet_setup_reported = true
 	health = max_health
 	_hurtbox = get_node_or_null("Hurtbox") as Area2D
 	if _hurtbox == null:
@@ -24,6 +33,7 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	_poll_magnet_area()
 	_update_invincibility(delta)
 	if _is_dead:
 		return
@@ -87,4 +97,26 @@ func _die() -> void:
 	hide()
 	set_physics_process(false)
 	if _hurtbox != null:
-		_hurtbox.monitoring = false
+		_hurtbox.set_deferred("monitoring", false)
+
+
+func _poll_magnet_area() -> void:
+	if magnet_area == null:
+		if not magnet_setup_reported:
+			push_error("Player is missing MagnetArea.")
+			magnet_setup_reported = true
+		return
+	if get("is_dead") == true:
+		return
+	for area: Area2D in magnet_area.get_overlapping_areas():
+		if area.get("target") == null:
+			area.set("target", self)
+
+
+func add_experience(amount: float) -> void:
+	if level_system == null:
+		if not level_system_reported:
+			push_error("Player is missing LevelSystem.")
+			level_system_reported = true
+		return
+	level_system.call("add_experience", amount)
