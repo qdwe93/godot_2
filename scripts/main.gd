@@ -55,7 +55,7 @@ func _ready() -> void:
 			actions_ok = false
 
 	var version_string = str(Engine.get_version_info().get("string", "unknown"))
-	print("BOOT_OK milestone=M7 actions_ok=%s version=%s" % [actions_ok, version_string])
+	print("BOOT_OK milestone=M9 actions_ok=%s version=%s" % [actions_ok, version_string])
 
 
 func _process(delta: float) -> void:
@@ -65,6 +65,10 @@ func _process(delta: float) -> void:
 
 func _on_player_health_changed(current: float, maximum: float) -> void:
 	print("PLAYER_HEALTH current=%.3f maximum=%.3f" % [current, maximum])
+	# 피격 시 화면을 짧게 흔든다. 그룹으로 찾으므로 흔들기 노드가 없어도 조용히 넘어간다.
+	var shaker: Node = get_tree().get_first_node_in_group(&"screen_shake")
+	if shaker != null and shaker.has_method("shake"):
+		shaker.call("shake")
 
 
 func _on_player_died() -> void:

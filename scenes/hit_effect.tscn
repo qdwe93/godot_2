@@ -1,0 +1,12 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Texture2D" path="res://assets/vfx/impact_white_6x4.png" id="1_impact"]
+[ext_resource type="Script" path="res://scripts/hit_effect.gd" id="2_script"]
+
+[node name="HitEffect" type="Sprite2D"]
+texture = ExtResource("1_impact")
+hframes = 6
+vframes = 4
+centered = true
+script = ExtResource("2_script")
+

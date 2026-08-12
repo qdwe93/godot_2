@@ -1,4 +1,4 @@
-[gd_scene load_steps=13 format=3 uid="uid://dktangm0setup"]
+[gd_scene load_steps=16 format=3 uid="uid://dktangm0setup"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2_player"]
@@ -13,13 +13,18 @@
 [ext_resource type="Script" path="res://scripts/boss_spawner.gd" id="10_boss_spawner"]
 [ext_resource type="PackedScene" path="res://scenes/hud.tscn" id="11_hud"]
 [ext_resource type="PackedScene" path="res://scenes/game_flow.tscn" id="12_game_flow"]
+[ext_resource type="PackedScene" path="res://scenes/hit_effect.tscn" id="13_hit_effect"]
+[ext_resource type="Script" path="res://scripts/effect_spawner.gd" id="14_effect_spawner"]
+[ext_resource type="Script" path="res://scripts/screen_shake.gd" id="15_screen_shake"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
 
 [node name="Background" type="ColorRect" parent="."]
-offset_right = 1280.0
-offset_bottom = 720.0
+offset_left = -40.0
+offset_top = -40.0
+offset_right = 1320.0
+offset_bottom = 760.0
 color = Color(0.08, 0.08, 0.1, 1)
 mouse_filter = 2
 
@@ -49,7 +54,7 @@ offset_left = 535.0
 offset_top = 20.0
 offset_right = 745.0
 offset_bottom = 50.0
-text = "M7: 웨이브와 보스"
+text = ""
 horizontal_alignment = 1
 vertical_alignment = 1
 
@@ -78,6 +83,18 @@ player_path = NodePath("../Player")
 player_path = NodePath("../Player")
 level_system_path = NodePath("../Player/LevelSystem")
 enemy_container_path = NodePath("../EnemyContainer")
+
+[node name="EffectContainer" type="Node2D" parent="."]
+
+[node name="EffectSpawner" type="Node" parent="."]
+script = ExtResource("14_effect_spawner")
+hit_effect_scene = ExtResource("13_hit_effect")
+effect_container_path = NodePath("../EffectContainer")
+enemy_container_path = NodePath("../EnemyContainer")
+
+[node name="ScreenShake" type="Node" parent="."]
+script = ExtResource("15_screen_shake")
+target_path = NodePath("..")
 
 [node name="GameFlow" parent="." instance=ExtResource("12_game_flow")]
 player_path = NodePath("../Player")
