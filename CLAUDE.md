@@ -72,6 +72,14 @@ Godot_v4.7.1-stable_win64_console.exe --headless --path <project> res://tests/te
 - 전체 통과 시 종료 코드 0, 실패 시 1을 반환한다.
 - **화면 크기에 의존하는 검증은 헤드리스에서 불가능하다.** 헤드리스는 뷰포트 높이를 잘못 보고하므로 bounds 관련 테스트는 `--headless`를 빼고 창 모드로 실행한다.
 
+### M2 적 생성·추적 자동 테스트
+
+```powershell
+Godot_v4.7.1-stable_win64_console.exe --headless --path <project> res://tests/test_enemy_spawn.tscn
+```
+
+- 주기 생성, 화면 밖 생성 위치, 플레이어 추적, 최대 적 수 제한을 헤드리스에서 검증한다.
+
 ### 문법만 검사
 
 ```powershell
