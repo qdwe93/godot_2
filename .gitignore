@@ -1,0 +1,17 @@
+# Godot 4 generated files
+.godot/
+
+# Android export/build files
+/android/
+
+# Generated translations
+*.translation
+
+# Export output
+/build/
+*.exe
+*.pck
+
+# Windows OS junk
+Thumbs.db
+desktop.ini
