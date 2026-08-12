@@ -17,6 +17,8 @@ mouse_filter = 2
 
 [node name="EnemyContainer" type="Node2D" parent="."]
 
+[node name="ProjectileContainer" type="Node2D" parent="." groups=["projectile_container"]]
+
 [node name="Player" parent="." instance=ExtResource("2_player")]
 position = Vector2(640, 360)
 
@@ -31,7 +33,7 @@ offset_left = 535.0
 offset_top = 20.0
 offset_right = 745.0
 offset_bottom = 50.0
-text = "M2: 적이 몰려온다"
+text = "M3: 자동 공격"
 horizontal_alignment = 1
 vertical_alignment = 1
 

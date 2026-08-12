@@ -8,4 +8,4 @@ func _ready() -> void:
 			actions_ok = false
 
 	var version_string := str(Engine.get_version_info().get("string", "unknown"))
-	print("BOOT_OK milestone=M2 actions_ok=%s version=%s" % [actions_ok, version_string])
+	print("BOOT_OK milestone=M3 actions_ok=%s version=%s" % [actions_ok, version_string])

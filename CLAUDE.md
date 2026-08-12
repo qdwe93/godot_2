@@ -80,6 +80,14 @@ Godot_v4.7.1-stable_win64_console.exe --headless --path <project> res://tests/te
 
 - 주기 생성, 화면 밖 생성 위치, 플레이어 추적, 최대 적 수 제한을 헤드리스에서 검증한다.
 
+### M3 자동 조준·발사 자동 테스트
+
+```powershell
+Godot_v4.7.1-stable_win64_console.exe --headless --path <project> res://tests/test_weapon.tscn
+```
+
+- 무표적 미발사, 최근접 조준, 피해·사망, 발사체 수명, 개수 상한을 헤드리스에서 검증한다.
+
 ### 문법만 검사
 
 ```powershell
@@ -93,6 +101,10 @@ Godot_v4.7.1-stable_win64_console.exe --headless --path <project> res://tests/te
 ```
 
 `--headless`를 빼면 실제 창이 뜬다. `--quit-after`로 반드시 자동 종료를 걸어 좀비 프로세스를 막는다.
+
+스크린샷 캡처는 `--capture=<저장 경로> --capture-after=<초>`를 추가한다 (기본 3.0초). 캡처에는 창 모드 실행이 필요하므로 `--headless`를 쓰지 않는다.
+
+**렌더 프레임 수는 경과 시간의 척도가 아니다.** 화면이 단순하면 수천 fps로 돌아가므로 프레임 수로 기다리면 실제로는 몇 초밖에 지나지 않는다.
 
 ## 프로젝트 규약
 
