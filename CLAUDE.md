@@ -152,7 +152,7 @@ Godot 4.7에서는 `Variant` 값으로부터 `:=` 타입을 추론하는 선언�
 ## 전체 테스트 스위트 (한 번에 돌리기)
 
 ```powershell
-foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_player_damage","test_experience","test_level_up_ui")) { $r = & "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" "res://tests/$t.tscn" 2>&1 | Select-String -Pattern "TEST_RESULT|TEST_ERROR"; "$t => $r (exit=$LASTEXITCODE)" }
+foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_player_damage","test_experience","test_level_up_ui","test_upgrades")) { $r = & "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" "res://tests/$t.tscn" 2>&1 | Select-String -Pattern "TEST_RESULT|TEST_ERROR"; "$t => $r (exit=$LASTEXITCODE)" }
 ```
 
 | 스위트 | 케이스 | 검증 내용 |
@@ -163,5 +163,6 @@ foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_p
 | `test_player_damage` | 5 | 접촉 피해, 무적, 지속 접촉 재피격, 사망, 사망 후 적 생존 |
 | `test_experience` | 5 | 젬 드랍, 자석 범위, 수집, 곡선, 다중 레벨업 |
 | `test_level_up_ui` | 5 | 일시정지, 3택 중복 없음, 일시정지 중 처리, 재개, 연속 레벨업 대기열 |
+| `test_upgrades` | 5 | 배율 정확도, 기본값 기준 복리, HP 증가+회복, 라이브 타이머 반영, 공유 리소스 미오염 |
 
 전부 `TEST_RESULT PASS`와 종료 코드 0이어야 한다. `TEST_ERROR`가 보이면 케이스가 실행조차 안 된 것이다.

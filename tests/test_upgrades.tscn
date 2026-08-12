@@ -1,0 +1,9 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://tests/test_upgrades.gd" id="1_test"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2_player"]
+[ext_resource type="PackedScene" path="res://scenes/level_up_ui.tscn" id="3_level_up_ui"]
+[ext_resource type="Script" path="res://scripts/upgrade_manager.gd" id="4_upgrade_manager"]
+
+[node name="TestUpgrades" type="Node"]
+script = ExtResource("1_test")
