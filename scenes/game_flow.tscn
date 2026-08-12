@@ -1,0 +1,94 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/game_flow.gd" id="1_game_flow"]
+
+[node name="GameFlow" type="CanvasLayer"]
+layer = 10
+process_mode = 3
+script = ExtResource("1_game_flow")
+
+[node name="TitlePanel" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1280.0
+offset_bottom = 720.0
+mouse_filter = 0
+
+[node name="Background" type="ColorRect" parent="TitlePanel"]
+layout_mode = 0
+offset_right = 1280.0
+offset_bottom = 720.0
+color = Color(0.02, 0.03, 0.07, 0.84)
+mouse_filter = 2
+
+[node name="TitleLabel" type="Label" parent="TitlePanel"]
+layout_mode = 0
+offset_left = 340.0
+offset_top = 205.0
+offset_right = 940.0
+offset_bottom = 290.0
+theme_override_font_sizes/font_size = 56
+text = "탕탕 서바이버"
+horizontal_alignment = 1
+
+[node name="HintLabel" type="Label" parent="TitlePanel"]
+layout_mode = 0
+offset_left = 340.0
+offset_top = 320.0
+offset_right = 940.0
+offset_bottom = 360.0
+theme_override_font_sizes/font_size = 22
+text = "끝없이 몰려오는 적들 사이에서 살아남으세요"
+horizontal_alignment = 1
+
+[node name="StartButton" type="Button" parent="TitlePanel"]
+layout_mode = 0
+offset_left = 515.0
+offset_top = 420.0
+offset_right = 765.0
+offset_bottom = 490.0
+theme_override_font_sizes/font_size = 28
+text = "시작"
+
+[node name="GameOverPanel" type="Control" parent="."]
+visible = false
+layout_mode = 3
+anchors_preset = 0
+offset_right = 1280.0
+offset_bottom = 720.0
+mouse_filter = 0
+
+[node name="Background" type="ColorRect" parent="GameOverPanel"]
+layout_mode = 0
+offset_right = 1280.0
+offset_bottom = 720.0
+color = Color(0.08, 0.01, 0.02, 0.86)
+mouse_filter = 2
+
+[node name="GameOverLabel" type="Label" parent="GameOverPanel"]
+layout_mode = 0
+offset_left = 340.0
+offset_top = 190.0
+offset_right = 940.0
+offset_bottom = 265.0
+theme_override_font_sizes/font_size = 52
+text = "게임 오버"
+horizontal_alignment = 1
+
+[node name="ResultLabel" type="Label" parent="GameOverPanel"]
+layout_mode = 0
+offset_left = 340.0
+offset_top = 305.0
+offset_right = 940.0
+offset_bottom = 385.0
+theme_override_font_sizes/font_size = 26
+horizontal_alignment = 1
+
+[node name="RestartButton" type="Button" parent="GameOverPanel"]
+layout_mode = 0
+offset_left = 490.0
+offset_top = 440.0
+offset_right = 790.0
+offset_bottom = 510.0
+theme_override_font_sizes/font_size = 28
+text = "다시 시작"

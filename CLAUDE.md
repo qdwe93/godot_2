@@ -155,7 +155,7 @@ Godot 4.7에서는 `Variant` 값으로부터 `:=` 타입을 추론하는 선언�
 ## 전체 테스트 스위트 (한 번에 돌리기)
 
 ```powershell
-foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_player_damage","test_experience","test_level_up_ui","test_upgrades","test_upgrade_limits","test_new_weapons","test_waves","test_boss_and_separation","test_hud")) { $r = & "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" --quit-after 3600 "res://tests/$t.tscn" 2>&1 | Select-String -Pattern "TEST_RESULT|TEST_ERROR"; "$t => $r (exit=$LASTEXITCODE)" }
+foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_player_damage","test_experience","test_level_up_ui","test_upgrades","test_upgrade_limits","test_new_weapons","test_waves","test_boss_and_separation","test_hud","test_game_flow")) { $r = & "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" --quit-after 3600 "res://tests/$t.tscn" 2>&1 | Select-String -Pattern "TEST_RESULT|TEST_ERROR"; "$t => $r (exit=$LASTEXITCODE)" }
 ```
 
 | 스위트 | 케이스 | 검증 내용 |
@@ -172,6 +172,19 @@ foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_p
 | `test_waves` | 6 | 페이즈 경계, 간격 단축, 다중 스폰, HP 배율, 변종 스탯, 레거시 모드 |
 | `test_boss_and_separation` | 6 | 보스 1회 스폰, 보스 스탯, 화면 밖, 적 분리, 추적 유지, 분리 비활성화 |
 | `test_hud` | 6 | 초기 표시값, HP 반영, 경험치·레벨, 킬 카운트, 타이머 서식, 사망 시 정지 |
+| `test_game_flow` | 6 | 타이틀 정지, 시작 해제, 사망 요약, 재시작 전 정지 해제, auto-play 2건 |
+
+> ⚠️ `test_enemy_spawn`은 **간헐적으로 1케이스가 실패**한다 (12회 중 1회 관측, 재현 8회 실패). 스폰 개수·추적 거리가 타이머 위상에 민감한 것으로 추정. 한 번 실패하면 재실행해 보고, 반복되면 허용 오차를 넓힐 것.
+
+## 게임 실행 — 타이틀 화면과 자동 진행
+
+M8b부터 게임은 **타이틀 화면에서 일시정지한 채 시작**한다. 자동화 실행(캡처·진단·장시간 측정)은 반드시 `--auto-play`를 넘겨야 한다.
+
+```powershell
+& "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --path "C:\Workspaces\game_make\test_godot_2" -- "--auto-play" "--capture=<경로>.png" "--capture-after=<초>"
+```
+
+`--auto-play`는 두 가지를 한다: ① 타이틀을 건너뛰고 즉시 시작 ② **레벨업 UI가 뜨면 자동으로 첫 선택지를 고른다.** 이게 없으면 무인 실행은 타이틀에서, 혹은 첫 레벨업에서 영원히 멈춘다.
 
 > **테스트 실행에 `--quit-after 3600`을 반드시 붙인다.** 테스트 스크립트가 파싱 실패하면 `quit()`이 호출되지 않아 **프로세스가 무한 대기**한다. `TEST_ERROR` 보호 장치는 스크립트가 로드된 뒤에야 작동하므로 이 경우를 못 막는다.
 
