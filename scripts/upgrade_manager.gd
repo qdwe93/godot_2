@@ -7,12 +7,15 @@ extends Node
 var _level_up_ui: Node
 var _player: Node
 var _weapon: Node
+var _shotgun: Node
+var _orbital: Node
 var _magnet_shape: CircleShape2D
 var _levels: Dictionary = {}
 
 var _base_speed: float = 0.0
 var _base_max_health: float = 0.0
 var _base_cooldown: float = 0.0
+var _base_shotgun_cooldown: float = 0.0
 var _base_magnet_radius: float = 0.0
 var _is_disabled: bool = false
 
@@ -36,6 +39,8 @@ func _ready() -> void:
 	if _weapon == null:
 		_disable_with_error("UpgradeManager: Player is missing its Weapon node.")
 		return
+	_shotgun = _player.get_node_or_null("Shotgun")
+	_orbital = _player.get_node_or_null("Orbital")
 
 	var magnet_collision: CollisionShape2D = _player.get_node_or_null("MagnetArea/CollisionShape2D") as CollisionShape2D
 	if magnet_collision == null:
@@ -59,6 +64,8 @@ func _ready() -> void:
 	_base_speed = float(_player.get(&"speed"))
 	_base_max_health = float(_player.get(&"max_health"))
 	_base_cooldown = float(_weapon.get(&"cooldown"))
+	if _shotgun != null:
+		_base_shotgun_cooldown = float(_shotgun.get(&"cooldown"))
 	_base_magnet_radius = _magnet_shape.radius
 
 	var connection_result: int = _level_up_ui.connect(&"upgrade_chosen", Callable(self, "_on_upgrade_chosen"))
@@ -81,6 +88,10 @@ func _on_upgrade_chosen(id: StringName) -> void:
 
 	_levels[id] = get_level(id) + 1
 	_recompute_stats()
+	if id == &"shotgun" and _shotgun != null:
+		_shotgun.call(&"unlock")
+	if id == &"orbital" and _orbital != null:
+		_orbital.call(&"unlock")
 
 	if id == &"heart":
 		var heart_definition: Dictionary = UpgradeData.get_definition(&"heart")
@@ -107,16 +118,23 @@ func _recompute_stats() -> void:
 	var computed_speed: float = _base_speed * pow(shoes_multiplier, get_level(&"shoes"))
 	var computed_max_health: float = _base_max_health + heart_amount * get_level(&"heart")
 	var computed_cooldown: float = _base_cooldown * pow(gloves_multiplier, get_level(&"gloves"))
+	var computed_shotgun_cooldown: float = _base_shotgun_cooldown * pow(gloves_multiplier, get_level(&"gloves"))
 	var computed_magnet_radius: float = _base_magnet_radius * pow(magnet_multiplier, get_level(&"magnet"))
 
 	_player.set(&"speed", computed_speed)
 	_player.set(&"max_health", computed_max_health)
 	_weapon.set(&"cooldown", computed_cooldown)
+	if _shotgun != null:
+		_shotgun.set(&"cooldown", computed_shotgun_cooldown)
 	_magnet_shape.radius = computed_magnet_radius
 
 	var cooldown_timer: Timer = _weapon.get_node_or_null("CooldownTimer") as Timer
 	if cooldown_timer != null:
 		cooldown_timer.wait_time = computed_cooldown
+	if _shotgun != null:
+		var shotgun_cooldown_timer: Timer = _shotgun.get_node_or_null("CooldownTimer") as Timer
+		if shotgun_cooldown_timer != null:
+			shotgun_cooldown_timer.wait_time = computed_shotgun_cooldown
 
 
 func get_experience_multiplier() -> float:
@@ -126,8 +144,8 @@ func get_experience_multiplier() -> float:
 
 
 func grant_experience(amount: float) -> void:
-	# M6a exposes this integration point, but the existing gem -> player -> level
-	# path cannot be rewired without editing player.gd. That wiring is deferred to M6b.
+	# The regular gem -> player -> level path now applies the multiplier in player.gd.
+	# This remains a convenience for direct experience grants.
 	if _is_disabled:
 		return
 	var level_system: Node = _player.get_node_or_null("LevelSystem")
@@ -146,10 +164,14 @@ func get_stat_report() -> Dictionary:
 	var max_health: float = float(_player.get(&"max_health")) if _player != null else 0.0
 	var cooldown: float = float(_weapon.get(&"cooldown")) if _weapon != null else 0.0
 	var magnet_radius: float = _magnet_shape.radius if _magnet_shape != null else 0.0
+	var shotgun_unlocked: bool = bool(_shotgun.get(&"is_unlocked")) if _shotgun != null else false
+	var orbital_unlocked: bool = bool(_orbital.get(&"is_unlocked")) if _orbital != null else false
 	return {
 		"speed": speed,
 		"max_health": max_health,
 		"cooldown": cooldown,
 		"magnet_radius": magnet_radius,
 		"experience_multiplier": get_experience_multiplier(),
+		"shotgun_unlocked": shotgun_unlocked,
+		"orbital_unlocked": orbital_unlocked,
 	}

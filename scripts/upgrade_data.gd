@@ -1,9 +1,8 @@
 class_name UpgradeData
 extends RefCounted
 
-## Central definitions for the passive upgrades introduced in M6a.
-## `max_level` is data for the selection UI/balancing pass; M6a deliberately
-## does not enforce caps, because level-cap handling belongs to M6b.
+## Central definitions for the passive and weapon upgrades.
+## `max_level` is enforced by the M6b level-up choice pool.
 const DEFINITIONS: Dictionary = {
 	"shoes": {
 		"label": "신발 - 이동 속도 +10%",
@@ -29,6 +28,14 @@ const DEFINITIONS: Dictionary = {
 		"label": "왕관 - 경험치 획득 +10%",
 		"max_level": 5,
 		"multiplier": 1.10,
+	},
+	"shotgun": {
+		"label": "산탄 - 전방 3발 발사",
+		"max_level": 1,
+	},
+	"orbital": {
+		"label": "궤도구 - 주위를 도는 구체",
+		"max_level": 1,
 	},
 }
 

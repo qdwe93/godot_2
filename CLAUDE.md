@@ -152,7 +152,7 @@ Godot 4.7에서는 `Variant` 값으로부터 `:=` 타입을 추론하는 선언�
 ## 전체 테스트 스위트 (한 번에 돌리기)
 
 ```powershell
-foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_player_damage","test_experience","test_level_up_ui","test_upgrades","test_upgrade_limits")) { $r = & "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" "res://tests/$t.tscn" 2>&1 | Select-String -Pattern "TEST_RESULT|TEST_ERROR"; "$t => $r (exit=$LASTEXITCODE)" }
+foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_player_damage","test_experience","test_level_up_ui","test_upgrades","test_upgrade_limits","test_new_weapons")) { $r = & "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" "res://tests/$t.tscn" 2>&1 | Select-String -Pattern "TEST_RESULT|TEST_ERROR"; "$t => $r (exit=$LASTEXITCODE)" }
 ```
 
 | 스위트 | 케이스 | 검증 내용 |
@@ -165,5 +165,6 @@ foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_p
 | `test_level_up_ui` | 5 | 일시정지, 3택 중복 없음, 일시정지 중 처리, 재개, 연속 레벨업 대기열 |
 | `test_upgrades` | 5 | 배율 정확도, 기본값 기준 복리, HP 증가+회복, 라이브 타이머 반영, 공유 리소스 미오염 |
 | `test_upgrade_limits` | 5 | 왕관 경험치 배율, 매니저 부재 시 안전, 상한 도달 제외, 선택지 2개, 0개 시 화면 생략 |
+| `test_new_weapons` | 5 | 잠금 상태 무동작, 산탄 3발, 부채꼴 각도, 궤도구 추종, 적별 피해 제한 |
 
 전부 `TEST_RESULT PASS`와 종료 코드 0이어야 한다. `TEST_ERROR`가 보이면 케이스가 실행조차 안 된 것이다.
