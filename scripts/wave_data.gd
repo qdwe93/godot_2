@@ -44,12 +44,45 @@ const PHASES: Array[Dictionary] = [
 		"weights": {&"basic": 3, &"fast": 2, &"tank": 1},
 	},
 	{
-		"start_time": 240.0,
+		"start_time": 120.0,
 		"spawn_interval": 0.3,
 		"max_enemies": 160,
 		"enemies_per_spawn": 3,
 		"health_multiplier": 3.5,
 		"weights": {&"basic": 2, &"fast": 2, &"tank": 2},
+	},
+	# 240초 이후에는 플레이어의 성장만 계속되어 난이도가 멈추지 않도록 페이즈를 추가한다.
+	{
+		"start_time": 330.0,
+		"spawn_interval": 0.26,
+		"max_enemies": 180,
+		"enemies_per_spawn": 4,
+		"health_multiplier": 5.0,
+		"weights": {&"basic": 2, &"fast": 3, &"tank": 2},
+	},
+	{
+		"start_time": 450.0,
+		"spawn_interval": 0.22,
+		"max_enemies": 200,
+		"enemies_per_spawn": 4,
+		"health_multiplier": 7.5,
+		"weights": {&"basic": 1, &"fast": 3, &"tank": 3},
+	},
+	{
+		"start_time": 600.0,
+		"spawn_interval": 0.18,
+		"max_enemies": 220,
+		"enemies_per_spawn": 5,
+		"health_multiplier": 11.0,
+		"weights": {&"basic": 1, &"fast": 3, &"tank": 4},
+	},
+	{
+		"start_time": 780.0,
+		"spawn_interval": 0.15,
+		"max_enemies": 240,
+		"enemies_per_spawn": 5,
+		"health_multiplier": 16.0,
+		"weights": {&"fast": 3, &"tank": 5},
 	},
 ]
 
