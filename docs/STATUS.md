@@ -140,7 +140,7 @@
 - [x] **고장 주입 6건 전부 FAIL 확인** (새 테스트가 원래 버그를 잡는다)
 - [x] **전체 16스위트 87케이스 통과**
 - [x] Windows / 웹 / Android 빌드 → `docs/BUILD.md`, `export_presets.cfg`
-- [x] 에셋 조사 — codex에는 이미지 생성 기능이 없다. 사양·프롬프트를 `docs/ASSETS.md`에 기록
+- [x] 에셋 조사 — **codex 내장 `imagegen` 사용 가능** (`codex features list` → `image_generation stable true`). 최초에 "기능 없음"으로 오판했다가 정정. 사양·프롬프트·생성 운영 규칙을 `docs/ASSETS.md`에 기록. **에셋 생성 자체는 아직 미실행**
 
 ## 바로 다음에 할 일 — 순서가 중요하다
 

@@ -142,16 +142,26 @@ const UPGRADE_IDS: Array[StringName] = [&"shoes", &"heart", &"magnet", &"gloves"
 
 `UpgradeData.get_all_ids()`로 바꿔 해결했다. 정의 단일 출처를 표방한 파일이 있는데 **목록이 세 군데(프로덕션 1 + 테스트 2)에 흩어져 있었던 것**이다.
 
-### 5-3. codex에는 이미지 생성 기능이 없다
+### 5-3. codex 이미지 생성 — "없다"고 잘못 판정했다가 정정
 
-2D 게임이니 에셋을 codex 이미지 생성으로 만들자는 계획이었으나, 조사 결과 **codex CLI(0.144.6)에는 이미지 생성 기능이 없다.**
+2D 게임이니 에셋을 codex 이미지 생성으로 만들자는 계획이 있었다.
+`codex exec --help`와 `codex plugin list`를 확인했더니 이미지 생성이 보이지 않아 **"기능 없음"으로 결론지었다. 이건 틀렸다.**
 
-- `codex exec -i/--image`는 이미지를 **입력으로 첨부**하는 옵션이다
-- 설치된 플러그인은 `documents`/`pdf`/`spreadsheets`/`presentations`/`sites`/`browser`/`visualize`. `visualize`는 차트·다이어그램용이다
-- 마켓플레이스 미설치 목록에도 이미지 생성기는 없다
+사용자가 같은 PC의 다른 프로젝트(`voca_video_plan`)에서 이미 codex로 이미지를 제작한 이력을 알려줘 다시 확인했다.
 
-따라서 **실행한 프롬프트는 한 건도 없다.** 대신 나중에 다른 도구로 생성할 수 있도록 **에셋 사양과 프롬프트 원문을 [docs/ASSETS.md](../ASSETS.md)에 작성해 남겼다.**
-Pillow 11.3.0이 있어 프로그램 생성은 가능하지만, A팀 디자이너가 "도형 상태에서 위계를 먼저 세우고 교체는 그 규칙을 옮기는 작업이어야 한다"고 해서 이번에는 실행하지 않았다.
+```powershell
+codex features list
+# image_generation                     stable             true
+```
+
+**`imagegen`은 CLI 옵션도 플러그인도 아니라 모델이 직접 호출하는 내장 도구**라서 `--help`에도 `plugin list`에도 나오지 않는다.
+`~/.codex/generated_images/<uuid>/ig_*.png`에 2026-06-09부터의 생성 원본이 실재하고, 그 프로젝트 `handover.md`에 "생성 방식: Codex 내장 `imagegen`"이라고 적혀 있다.
+
+> **교훈**: 도구의 존재 여부를 CLI 헬프로 단정하지 않는다. 기능 플래그와 실제 산출물 흔적을 함께 본다.
+> 이번 마일스톤에서 "선언은 있는데 배선이 끊긴" 버그를 세 건 잡아놓고, **조사 방법에서 같은 종류의 실수를 했다.**
+
+에셋 자체는 이번에 생성하지 않았다. 기능이 없어서가 아니라 A팀 디자이너가 "도형 상태에서 위계를 먼저 세우고 교체는 그 규칙을 옮기는 작업이어야 한다"고 했기 때문이다.
+사양·프롬프트 원문과, `voca_video_plan`에서 읽어 온 생성 운영 규칙(비용, 안전 필터 회피, 로고 방지 문구, 검수 절차, 병렬화)을 [docs/ASSETS.md](../ASSETS.md)에 정리했다.
 
 ### 5-4. 빌드에서 걸린 것 세 가지
 
