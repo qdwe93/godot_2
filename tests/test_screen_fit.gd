@@ -220,6 +220,18 @@ func _case_level_up_ui_fits_and_is_tappable() -> void:
 	elif dimmer.size.x < arena.x - 1.0 or dimmer.size.y < arena.y - 1.0:
 		offenders.append("dimmer(%.0fx%.0f)" % [dimmer.size.x, dimmer.size.y])
 
+	# 위치만 재면 헤드리스에서 놓친다. 헤드리스 뷰포트는 기준 해상도와 폭이 같아
+	# **왼쪽 고정 오프셋과 가운데 정렬이 우연히 같은 자리에 온다.** 그래서 실기에서만
+	# 드러나는 종류의 버그가 된다 (실제로 고장 주입에서 이 케이스를 통과했다).
+	# 넓은 화면에서 왼쪽으로 쏠리는 배치인지를 **앵커 설정으로** 직접 본다.
+	for anchored_name in ["Title", "Choices"]:
+		var anchored: Control = level_up_ui.get_node_or_null(anchored_name) as Control
+		if anchored == null:
+			offenders.append("%s(missing)" % anchored_name)
+			continue
+		if is_zero_approx(anchored.anchor_left) and is_zero_approx(anchored.anchor_right):
+			offenders.append("%s(왼쪽고정)" % anchored_name)
+
 	# 손가락 표적 하한. 이보다 작으면 실기에서 "누르기 어렵다"가 된다.
 	var minimum_touch_height: float = 90.0
 	for index in range(3):
