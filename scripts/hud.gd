@@ -7,6 +7,7 @@ extends CanvasLayer
 @onready var health_bar: ProgressBar = $HealthBar
 @onready var health_label: Label = $HealthLabel
 @onready var experience_bar: ProgressBar = $ExperienceBar
+@onready var danger_vignette: ColorRect = $DangerVignette
 @onready var level_label: Label = $LevelLabel
 @onready var time_label: Label = $TimeLabel
 @onready var kill_label: Label = $KillLabel
@@ -19,9 +20,19 @@ var _level: int = 0
 var _kills: int = 0
 var _elapsed_time: float = 0.0
 var _timer_stopped: bool = false
+var _danger_state: bool = false
+var _danger_alpha: float = 0.0
+var _normal_health_fill_style: StyleBox
+var _danger_health_fill_style: StyleBoxFlat = StyleBoxFlat.new()
+
+const DANGER_HEALTH_RATIO: float = 0.3
+const MAX_DANGER_ALPHA: float = 0.22
+const DANGER_COLOUR: Color = Color(0.95, 0.25, 0.25, 1.0)
 
 
 func _ready() -> void:
+	_normal_health_fill_style = health_bar.get_theme_stylebox(&"fill")
+	_danger_health_fill_style.bg_color = DANGER_COLOUR
 	_update_health_display()
 	_update_experience_display()
 	_update_time_display()
@@ -127,6 +138,26 @@ func _update_health_display() -> void:
 	health_bar.max_value = maxf(_max_health, 1.0)
 	health_bar.value = clampf(_health, 0.0, health_bar.max_value)
 	health_label.text = "%d/%d" % [roundi(_health), roundi(_max_health)]
+	_update_danger_display()
+
+
+func _update_danger_display() -> void:
+	var health_ratio: float = 1.0
+	if _max_health > 0.0:
+		health_ratio = clampf(_health / _max_health, 0.0, 1.0)
+	_danger_state = _max_health > 0.0 and health_ratio <= DANGER_HEALTH_RATIO
+	if _danger_state:
+		_danger_alpha = clampf((DANGER_HEALTH_RATIO - health_ratio) / DANGER_HEALTH_RATIO, 0.0, 1.0) * MAX_DANGER_ALPHA
+		health_bar.add_theme_stylebox_override(&"fill", _danger_health_fill_style)
+		health_label.add_theme_color_override(&"font_color", DANGER_COLOUR)
+	else:
+		_danger_alpha = 0.0
+		if _normal_health_fill_style != null:
+			health_bar.add_theme_stylebox_override(&"fill", _normal_health_fill_style)
+		health_label.remove_theme_color_override(&"font_color")
+	var vignette_modulate: Color = danger_vignette.modulate
+	vignette_modulate.a = _danger_alpha
+	danger_vignette.modulate = vignette_modulate
 
 
 func _update_experience_display() -> void:
@@ -156,6 +187,14 @@ func get_kill_count() -> int:
 
 func get_elapsed_time() -> float:
 	return _elapsed_time
+
+
+func is_danger_state() -> bool:
+	return _danger_state
+
+
+func get_danger_alpha() -> float:
+	return _danger_alpha
 
 
 func get_displayed_values() -> Dictionary:

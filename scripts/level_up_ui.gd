@@ -4,14 +4,6 @@ signal upgrade_chosen(id: StringName)
 
 @export var level_system_path: NodePath
 
-const UPGRADE_POOL: Array[StringName] = [
-	&"shoes",
-	&"heart",
-	&"magnet",
-	&"gloves",
-	&"crown",
-]
-
 var last_choice: StringName = &""
 var chosen_history: Array[StringName] = []
 
@@ -81,7 +73,7 @@ func _show_next_level_up() -> void:
 func _get_available_upgrade_ids() -> Array[StringName]:
 	var available: Array[StringName] = []
 	var upgrade_manager: Node = get_tree().get_first_node_in_group("upgrade_manager")
-	for upgrade_id in UPGRADE_POOL:
+	for upgrade_id in UpgradeData.get_all_ids():
 		var definition: Dictionary = UpgradeData.get_definition(upgrade_id)
 		var max_level: int = int(definition.get("max_level", 0))
 		var current_level: int = 0

@@ -3,7 +3,8 @@ extends Node
 const EXPECTED_CASE_COUNT: int = 5
 const PLAYER_SCRIPT: Script = preload("res://scripts/player.gd")
 const LEVEL_UP_UI_SCRIPT: Script = preload("res://scripts/level_up_ui.gd")
-const UPGRADE_IDS: Array[StringName] = [&"shoes", &"heart", &"magnet", &"gloves", &"crown"]
+# 업그레이드 목록을 여기에 다시 적으면 정의가 늘 때마다 이 테스트가 조용히 낡는다.
+# 실제로 산탄·궤도구가 선택 풀에 들어왔을 때 이 하드코딩 때문에 2케이스가 깨졌다.
 
 var _passed: int = 0
 var _failed: int = 0
@@ -155,7 +156,7 @@ func _case_two_available_shows_two_buttons() -> void:
 	_make_player(arena)
 	var level_up_ui: CanvasLayer = _make_level_up_ui(arena)
 	var manager: TestUpgradeManager = _make_manager(arena)
-	for upgrade_id in UPGRADE_IDS:
+	for upgrade_id in UpgradeData.get_all_ids():
 		if upgrade_id == &"shoes" or upgrade_id == &"heart":
 			continue
 		var definition: Dictionary = UpgradeData.get_definition(upgrade_id)
@@ -177,7 +178,7 @@ func _case_no_upgrades_skips_screen() -> void:
 	_make_player(arena)
 	var level_up_ui: CanvasLayer = _make_level_up_ui(arena)
 	var manager: TestUpgradeManager = _make_manager(arena)
-	for upgrade_id in UPGRADE_IDS:
+	for upgrade_id in UpgradeData.get_all_ids():
 		var definition: Dictionary = UpgradeData.get_definition(upgrade_id)
 		var max_level: int = int(definition.get("max_level", 0))
 		for level_index in range(max_level):

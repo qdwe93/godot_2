@@ -155,7 +155,7 @@ Godot 4.7에서는 `Variant` 값으로부터 `:=` 타입을 추론하는 선언�
 ## 전체 테스트 스위트 (한 번에 돌리기)
 
 ```powershell
-foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_player_damage","test_experience","test_level_up_ui","test_upgrades","test_upgrade_limits","test_new_weapons","test_waves","test_boss_and_separation","test_hud","test_game_flow","test_effects")) { $r = & "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" --quit-after 3600 "res://tests/$t.tscn" 2>&1 | Select-String -Pattern "TEST_RESULT|TEST_ERROR"; "$t => $r (exit=$LASTEXITCODE)" }
+foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_player_damage","test_experience","test_level_up_ui","test_upgrades","test_upgrade_limits","test_new_weapons","test_waves","test_boss_and_separation","test_hud","test_game_flow","test_effects","test_scene_wiring","test_feedback")) { $r = & "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" --quit-after 3600 "res://tests/$t.tscn" 2>&1 | Select-String -Pattern "TEST_RESULT|TEST_ERROR"; "$t => $r (exit=$LASTEXITCODE)" }
 ```
 
 | 스위트 | 케이스 | 검증 내용 |
@@ -169,13 +169,30 @@ foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_p
 | `test_upgrades` | 5 | 배율 정확도, 기본값 기준 복리, HP 증가+회복, 라이브 타이머 반영, 공유 리소스 미오염 |
 | `test_upgrade_limits` | 5 | 왕관 경험치 배율, 매니저 부재 시 안전, 상한 도달 제외, 선택지 2개, 0개 시 화면 생략 |
 | `test_new_weapons` | 5 | 잠금 상태 무동작, 산탄 3발, 부채꼴 각도, 궤도구 추종, 적별 피해 제한 |
-| `test_waves` | 6 | 페이즈 경계, 간격 단축, 다중 스폰, HP 배율, 변종 스탯, 레거시 모드 |
+| `test_waves` | 8 | **불변식 기반** — 시작 시각 엄격 증가, 전 페이즈 도달 가능, 경계 배타성, 곡선 단조성, 변종 id 실재, HP 배율, 변종 스탯, 레거시 모드 |
 | `test_boss_and_separation` | 6 | 보스 1회 스폰, 보스 스탯, 화면 밖, 적 분리, 추적 유지, 분리 비활성화 |
 | `test_hud` | 6 | 초기 표시값, HP 반영, 경험치·레벨, 킬 카운트, 타이머 서식, 사망 시 정지 |
 | `test_game_flow` | 6 | 타이틀 정지, 시작 해제, 사망 요약, 재시작 전 정지 해제, auto-play 2건 |
 | `test_effects` | 6 | 이펙트 자동 해제, 프레임 진행, 컨테이너 배치, 크기 비례, 흔들림 복원 2건 |
+| `test_scene_wiring` | 6 | **배선 스모크** — 전 업그레이드 노출, 그룹 실재, 교차 메서드 실재, 플레이어 자식 노드, 시그널, 보스 드랍 연결 |
+| `test_feedback` | 5 | 명중 이펙트 생성, 피격 번쩍, 번쩍 복원, 위험 상태 진입·해제 |
 
 > ⚠️ `test_enemy_spawn`은 **간헐적으로 1케이스가 실패**한다 (12회 중 1회 관측, 재현 8회 실패). 스폰 개수·추적 거리가 타이머 위상에 민감한 것으로 추정. 한 번 실패하면 재실행해 보고, 반복되면 허용 오차를 넓힐 것.
+
+### ⚠️ 테스트에 목록을 하드코딩하지 말 것
+
+`test_waves`가 밸런스 수치를, `test_upgrade_limits`가 업그레이드 id 목록을 하드코딩해서 **튜닝과 콘텐츠 추가를 두 번 막았다**.
+값이 아니라 **불변식**을 검사하고, 목록은 `WaveData.PHASES` / `UpgradeData.get_all_ids()`처럼 **정의에서 읽어 온다**.
+
+### ⚠️ 유닛 통과 ≠ 배선 연결
+
+이 프로젝트에서 "정의는 있는데 게임에서 실행되지 않는" 버그가 3건 나왔다 (산탄·궤도구 미노출, `spawn_hit()` 호출처 0건, 보스 드랍 메서드 이름 불일치).
+전부 유닛 테스트를 통과했다. **그룹 이름·문자열 메서드·선택지 노출을 바꿨으면 `test_scene_wiring`을 돌린다.**
+
+## 빌드 (Windows / 웹 / Android)
+
+절차와 함정은 [docs/BUILD.md](docs/BUILD.md)에 있다. 프리셋은 `export_presets.cfg`.
+Android는 `--export-debug`를 쓴다 (릴리스 키스토어 없음). `build/.gdignore`를 지우지 말 것 — 지우면 웹 산출물이 프로젝트 에셋으로 재임포트된다.
 
 ## 게임 실행 — 타이틀 화면과 자동 진행
 

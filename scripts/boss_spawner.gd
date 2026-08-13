@@ -11,7 +11,7 @@ extends Node
 @export var boss_speed: float = 50.0
 @export var boss_contact_damage: float = 25.0
 @export var boss_scale: float = 3.0
-@export var boss_color: Color = Color(0.1, 0.1, 0.12)
+@export var boss_color: Color = Color(0.95, 0.35, 0.95)
 
 var _enemy_container: Node
 var _target: Node2D
@@ -99,7 +99,8 @@ func has_spawned() -> bool:
 
 func _connect_pickup_spawner(boss: Node) -> void:
 	var pickup_spawner: Node = get_tree().get_first_node_in_group(&"pickup_spawner")
-	if pickup_spawner == null or not pickup_spawner.has_method("spawn_pickup"):
+	if pickup_spawner == null or not pickup_spawner.has_method("on_enemy_died"):
+		push_error("BossSpawner: no node in group 'pickup_spawner' with on_enemy_died(); the boss will not drop experience.")
 		return
 	if boss.has_signal(&"died"):
-		boss.connect(&"died", Callable(pickup_spawner, "spawn_pickup"))
+		boss.connect(&"died", Callable(pickup_spawner, "on_enemy_died"))

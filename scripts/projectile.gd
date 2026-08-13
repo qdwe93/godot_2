@@ -38,4 +38,7 @@ func _on_body_entered(body: Node2D) -> void:
 
 	if body.has_method("take_damage"):
 		body.call("take_damage", damage)
+		var effect_spawner: Node = get_tree().get_first_node_in_group(&"effect_spawner")
+		if effect_spawner != null and effect_spawner.has_method(&"spawn_hit"):
+			effect_spawner.call(&"spawn_hit", global_position)
 	queue_free()

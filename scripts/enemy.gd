@@ -18,13 +18,19 @@ var variant_id: StringName = &"basic"
 
 var _dead := false
 var _separation_vector: Vector2 = Vector2.ZERO
+var _hit_flash_remaining: float = 0.0
+var _base_sprite_color: Color = Color.WHITE
+var _has_base_sprite_color: bool = false
+
+const HIT_FLASH_DURATION: float = 0.06
 
 
 func _ready() -> void:
 	health = max_health
 
 
-func _physics_process(_delta: float) -> void:
+func _physics_process(delta: float) -> void:
+	_update_hit_flash(delta)
 	if not is_instance_valid(target):
 		velocity = Vector2.ZERO
 		return
@@ -87,6 +93,43 @@ func take_damage(amount: float) -> void:
 	health -= amount
 	if health <= 0.0:
 		_die()
+		return
+	_start_hit_flash()
+
+
+func _start_hit_flash() -> void:
+	var sprite: ColorRect = get_node_or_null("Sprite") as ColorRect
+	if sprite == null:
+		return
+	if not _has_base_sprite_color:
+		_base_sprite_color = sprite.color
+		_has_base_sprite_color = true
+	_hit_flash_remaining = HIT_FLASH_DURATION
+	sprite.color = Color.WHITE
+
+
+func _update_hit_flash(delta: float) -> void:
+	if _hit_flash_remaining <= 0.0:
+		return
+	_hit_flash_remaining = maxf(_hit_flash_remaining - delta, 0.0)
+	if _hit_flash_remaining > 0.0:
+		return
+	var sprite: ColorRect = get_node_or_null("Sprite") as ColorRect
+	if sprite != null and _has_base_sprite_color:
+		sprite.color = _base_sprite_color
+
+
+func is_hit_flashing() -> bool:
+	return _hit_flash_remaining > 0.0
+
+
+func get_base_sprite_color() -> Color:
+	if _has_base_sprite_color:
+		return _base_sprite_color
+	var sprite: ColorRect = get_node_or_null("Sprite") as ColorRect
+	if sprite != null:
+		return sprite.color
+	return Color.WHITE
 
 
 func _die() -> void:

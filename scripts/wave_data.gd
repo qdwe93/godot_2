@@ -44,7 +44,7 @@ const PHASES: Array[Dictionary] = [
 		"weights": {&"basic": 3, &"fast": 2, &"tank": 1},
 	},
 	{
-		"start_time": 120.0,
+		"start_time": 240.0,
 		"spawn_interval": 0.3,
 		"max_enemies": 160,
 		"enemies_per_spawn": 3,

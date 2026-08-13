@@ -34,7 +34,7 @@ mouse_filter = 2
 
 [node name="PickupContainer" type="Node2D" parent="."]
 
-[node name="PickupSpawner" type="Node" parent="."]
+[node name="PickupSpawner" type="Node" parent="." groups=["pickup_spawner"]]
 script = ExtResource("7_pickup_spawner")
 gem_scene = ExtResource("6_xp_gem")
 gem_container_path = NodePath("../PickupContainer")
