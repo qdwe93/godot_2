@@ -49,3 +49,9 @@ move_down={
 
 renderer/rendering_method="gl_compatibility"
 textures/vram_compression/import_etc2_astc=true
+
+[input_devices]
+
+; 마우스 드래그를 터치로 바꾼다. PC와 웹에서도 조이스틱을 그대로 시험할 수 있고,
+; 폰에만 있는 기능을 폰 없이 검증할 수 있다.
+pointing/emulate_touch_from_mouse=true

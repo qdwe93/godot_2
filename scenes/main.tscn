@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3 uid="uid://dktangm0setup"]
+[gd_scene load_steps=17 format=3 uid="uid://dktangm0setup"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2_player"]
@@ -16,6 +16,7 @@
 [ext_resource type="PackedScene" path="res://scenes/hit_effect.tscn" id="13_hit_effect"]
 [ext_resource type="Script" path="res://scripts/effect_spawner.gd" id="14_effect_spawner"]
 [ext_resource type="Script" path="res://scripts/screen_shake.gd" id="15_screen_shake"]
+[ext_resource type="PackedScene" path="res://scenes/touch_joystick.tscn" id="16_touch_joystick"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
@@ -107,3 +108,5 @@ enemy_scene = ExtResource("4_enemy")
 spawn_time = 300.0
 enemy_container_path = NodePath("../EnemyContainer")
 target_path = NodePath("../Player")
+
+[node name="TouchJoystick" parent="." instance=ExtResource("16_touch_joystick")]

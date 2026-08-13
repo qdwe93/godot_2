@@ -69,9 +69,15 @@ adb install -r build/android/TangtangSurvivors-debug.apk
 
 ## 알아둘 것
 
-### Android는 현재 조작이 불가능하다
+### Android 터치 조작 (2026-08-13 추가)
 
-입력이 **WASD 키보드 전용**이다(`project.godot`의 InputMap이 물리 키코드로만 바인딩됨). APK는 설치·실행되지만 터치 조작이 없어서 **물리 키보드나 게임패드를 붙이지 않으면 플레이할 수 없다.** PRD도 모바일·터치를 범위 밖으로 명시하고 있다. 터치를 지원하려면 가상 조이스틱이 별도 작업으로 필요하다.
+화면 아무 데나 손가락을 대면 그 자리에 **가상 조이스틱**이 생기고, 끌면 그 방향으로 움직인다. 떼면 사라진다. 타이틀 시작 버튼과 레벨업 3택은 그냥 탭하면 된다.
+
+구현은 `scenes/touch_joystick.tscn` / `scripts/touch_joystick.gd`이며, **`player.gd`는 한 줄도 바뀌지 않았다.** 조이스틱이 `Input.action_press()`로 InputMap의 `move_*` 액션을 직접 눌러 주기 때문에 키보드와 완전히 같은 경로로 흐른다. 덕분에 기존 이동 테스트와 봇 진단이 그대로 유효하다.
+
+`project.godot`에 `input_devices/pointing/emulate_touch_from_mouse=true`를 켜 두었으므로 **PC와 웹에서도 마우스 드래그로 조이스틱을 시험할 수 있다.** 폰이 없어도 검증이 된다.
+
+이전 버전에는 터치 조작이 없어 폰에서 캐릭터를 움직일 수 없었다. 지금은 가능하다.
 
 ### Android 릴리스 서명은 아직 없다
 

@@ -199,7 +199,7 @@ python tools/balance_sim.py --plan m12b --verbose
 ## 전체 테스트 스위트 (한 번에 돌리기)
 
 ```powershell
-foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_player_damage","test_experience","test_level_up_ui","test_upgrades","test_upgrade_limits","test_new_weapons","test_waves","test_boss_and_separation","test_hud","test_game_flow","test_effects","test_scene_wiring","test_feedback","test_visual_hierarchy","test_power_growth")) { $r = & "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" --quit-after 3600 "res://tests/$t.tscn" 2>&1 | Select-String -Pattern "TEST_RESULT|TEST_ERROR"; "$t => $r (exit=$LASTEXITCODE)" }
+foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_player_damage","test_experience","test_level_up_ui","test_upgrades","test_upgrade_limits","test_new_weapons","test_waves","test_boss_and_separation","test_hud","test_game_flow","test_effects","test_scene_wiring","test_feedback","test_visual_hierarchy","test_power_growth","test_touch_joystick")) { $r = & "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" --quit-after 3600 "res://tests/$t.tscn" 2>&1 | Select-String -Pattern "TEST_RESULT|TEST_ERROR"; "$t => $r (exit=$LASTEXITCODE)" }
 ```
 
 | 스위트 | 케이스 | 검증 내용 |
@@ -221,6 +221,7 @@ foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_p
 | `test_scene_wiring` | 6 | **배선 스모크** — 전 업그레이드 노출, 그룹 실재, 교차 메서드 실재, 플레이어 자식 노드, 시그널, 보스 드랍 연결 |
 | `test_feedback` | 5 | 명중 이펙트 생성, 피격 번쩍, 번쩍 복원, 위험 상태 진입·해제 |
 | `test_visual_hierarchy` | 4 | **시각 규칙** — 밝기 순서, 전 요소 3:1 대비, 플레이어 최상위, 적 형태 구분 |
+| `test_touch_joystick` | 6 | **터치 조작** — 끌기 방향, 뗄 때 액션 해제, 데드존, 세기 비례, 두 번째 손가락, main.tscn 배선 |
 | `test_power_growth` | 8 | **성장 경로** — 칼날이 세 무기 전부에 적용, 기본값 기준 복리, 산탄 탄수·궤도구 피해 레벨링, `max_level=1` 회귀 방지, 체력 재생, 젬 값 전달 |
 
 > ⚠️ `test_enemy_spawn`은 **간헐적으로 1케이스가 실패**한다 (12회 중 1회 관측, 재현 8회 실패). 스폰 개수·추적 거리가 타이머 위상에 민감한 것으로 추정. 한 번 실패하면 재실행해 보고, 반복되면 허용 오차를 넓힐 것.

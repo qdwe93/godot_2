@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://tests/diag_joystick_capture.gd" id="1_diag_joystick"]
+
+[node name="DiagJoystickCapture" type="Node"]
+script = ExtResource("1_diag_joystick")
