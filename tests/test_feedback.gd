@@ -83,12 +83,16 @@ func _case_enemy_flashes_on_hit() -> void:
 	var enemy: CharacterBody2D = ENEMY_SCENE.instantiate() as CharacterBody2D
 	enemy.process_mode = DISABLED_PROCESS_MODE
 	add_child(enemy)
-	var sprite: Polygon2D = enemy.get_node_or_null("Sprite") as Polygon2D
-	var base_colour: Color = sprite.color if sprite != null else Color.WHITE
+	# M15에서 스프라이트가 텍스처가 되면서 "색을 흰색으로 바꿨다 되돌리기"를 못 쓰게 됐다.
+	# modulate 는 곱셈이라 색을 더 밝게 만들 수 없기 때문이다. 지금은 같은 그림을
+	# 흰색으로 칠한 Flash 오버레이의 알파를 올린다. 그래서 검사 대상도 알파다.
+	var flash: Sprite2D = enemy.get_node_or_null("Flash") as Sprite2D
+	var alpha_before: float = flash.self_modulate.a if flash != null else -1.0
 	enemy.call(&"take_damage", 1.0)
-	var current_colour: Color = sprite.color if sprite != null else base_colour
+	var alpha_after: float = flash.self_modulate.a if flash != null else -1.0
 	var flashing: bool = bool(enemy.call(&"is_hit_flashing"))
-	_record_case("enemy_flashes_on_hit", flashing and current_colour != base_colour, "flashing=%s" % flashing)
+	_record_case("enemy_flashes_on_hit", flash != null and flashing and alpha_after > alpha_before,
+		"flashing=%s alpha_before=%.2f alpha_after=%.2f" % [flashing, alpha_before, alpha_after])
 	await _dispose(enemy)
 
 
@@ -96,13 +100,13 @@ func _case_enemy_flash_restores_colour() -> void:
 	var enemy: CharacterBody2D = ENEMY_SCENE.instantiate() as CharacterBody2D
 	enemy.process_mode = DISABLED_PROCESS_MODE
 	add_child(enemy)
-	var sprite: Polygon2D = enemy.get_node_or_null("Sprite") as Polygon2D
+	var flash: Sprite2D = enemy.get_node_or_null("Flash") as Sprite2D
 	enemy.call(&"take_damage", 1.0)
 	enemy.call(&"_physics_process", 0.07)
-	var restored_colour: Color = sprite.color if sprite != null else Color.WHITE
-	var base_colour: Color = enemy.call(&"get_base_sprite_color")
+	var restored_alpha: float = flash.self_modulate.a if flash != null else -1.0
 	var flashing: bool = bool(enemy.call(&"is_hit_flashing"))
-	_record_case("enemy_flash_restores_colour", not flashing and restored_colour == base_colour, "flashing=%s" % flashing)
+	_record_case("enemy_flash_restores_colour", flash != null and not flashing and is_zero_approx(restored_alpha),
+		"flashing=%s restored_alpha=%.2f" % [flashing, restored_alpha])
 	await _dispose(enemy)
 
 

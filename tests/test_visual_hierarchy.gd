@@ -6,6 +6,7 @@ const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const PLAYER_SCENE: PackedScene = preload("res://scenes/player.tscn")
 const XP_GEM_SCENE: PackedScene = preload("res://scenes/xp_gem.tscn")
 const PROJECTILE_SCENE: PackedScene = preload("res://scenes/projectile.tscn")
+const PLAYER_SCRIPT: Script = preload("res://scripts/player.gd")
 const BOSS_SPAWNER_SCRIPT: Script = preload("res://scripts/boss_spawner.gd")
 
 var _passed: int = 0
@@ -53,13 +54,16 @@ func _read_visual_colours() -> Dictionary:
 	var player: Node = PLAYER_SCENE.instantiate()
 	var gem: Node = XP_GEM_SCENE.instantiate()
 	var projectile: Node = PROJECTILE_SCENE.instantiate()
-	var player_sprite: CanvasItem = player.get_node_or_null("Sprite") as CanvasItem if player != null else null
+	# 플레이어 스프라이트는 M15에서 텍스처가 됐다. 그림에 색이 구워져 있어 노드에서
+	# 읽을 수 없으므로 규칙상의 기준 색을 스크립트 상수에서 읽는다. 그림이 그 색과
+	# 실제로 맞는지는 tools/check_sprite_luminance.py 가 축소해서 잰다.
+	var player_colour: Color = Color(PLAYER_SCRIPT.BASE_SPRITE_COLOUR)
 	var gem_sprite: CanvasItem = gem.get_node_or_null("Sprite") as CanvasItem if gem != null else null
 	var projectile_sprite: CanvasItem = projectile.get_node_or_null("Sprite") as CanvasItem if projectile != null else null
 	var boss_spawner: Node = BOSS_SPAWNER_SCRIPT.new()
 	# ColorRect와 Polygon2D 둘 다 color 속성을 갖는다. 타입으로 못 박으면
 	# 스프라이트 노드 종류를 바꾸는 순간 테스트가 조용히 셋업 실패한다.
-	if background == null or boss_spawner == null or not _has_colour(player_sprite) or not _has_colour(gem_sprite) or not _has_colour(projectile_sprite):
+	if background == null or boss_spawner == null or not _has_colour(gem_sprite) or not _has_colour(projectile_sprite):
 		if is_instance_valid(player):
 			player.queue_free()
 		if is_instance_valid(gem):
@@ -74,7 +78,7 @@ func _read_visual_colours() -> Dictionary:
 	boss_spawner.free()
 	var colours: Dictionary = {
 		"background": background.color,
-		"player": _read_colour(player_sprite),
+		"player": player_colour,
 		"boss": boss_colour,
 		"tank": Color(tank_type.get("color", Color.BLACK)),
 		"basic": Color(basic_type.get("color", Color.BLACK)),
@@ -137,19 +141,28 @@ func _test_player_is_brightest(colours: Dictionary) -> void:
 
 
 func _test_enemy_variants_have_distinct_shapes() -> void:
-	var variant_ids: Array[StringName] = [&"basic", &"fast", &"tank"]
-	var seen_shapes: Dictionary = {}
-	var seen_point_counts: Dictionary = {}
-	for variant_id in variant_ids:
-		var enemy_type: Dictionary = WaveData.get_enemy_type(variant_id)
-		var shape_id: StringName = StringName(enemy_type.get("shape", &""))
-		var point_count: int = WaveData.get_shape_points(shape_id, 10.0).size()
-		if seen_shapes.has(shape_id) or seen_point_counts.has(point_count):
-			_record_case("enemy_variants_have_distinct_shapes", false, "variant=%s shape=%s points=%d" % [variant_id, shape_id, point_count])
-			return
-		seen_shapes[shape_id] = true
-		seen_point_counts[point_count] = true
-	_record_case("enemy_variants_have_distinct_shapes", true, "shapes=%d point_counts=%d" % [seen_shapes.size(), seen_point_counts.size()])
+	# 적록색각이상에서는 빨강·주황·자주가 같은 갈색으로 수렴한다. 그래서 형태가
+	# 유일한 구분 수단이다. 예전에는 Polygon2D 의 점 개수를 셌는데, M15에서
+	# 스프라이트로 바뀌면서 셀 점이 없어졌다. 대신 **변종마다 다른 그림을 쓰는가**를 본다.
+	var textures: Dictionary = {}
+	var missing: PackedStringArray = []
+	for variant_id: StringName in WaveData.ENEMY_TYPES:
+		var texture_path: String = str(WaveData.get_enemy_type(variant_id).get("texture", ""))
+		if texture_path.is_empty():
+			missing.append(String(variant_id))
+			continue
+		if not ResourceLoader.exists(texture_path):
+			missing.append("%s(no_file)" % variant_id)
+			continue
+		textures[texture_path] = true
+	var variant_count: int = WaveData.ENEMY_TYPES.size()
+	var distinct: int = textures.size()
+	_record_case(
+		"enemy_variants_have_distinct_shapes",
+		missing.is_empty() and distinct == variant_count and variant_count >= 2,
+		"variants=%d distinct_textures=%d missing=%s" % [
+			variant_count, distinct, "none" if missing.is_empty() else ",".join(missing)]
+	)
 
 
 static func _srgb_to_linear(channel: float) -> float:

@@ -1,0 +1,173 @@
+# 작업: 캐릭터형 스프라이트 5종 생성 (player / enemy_basic / enemy_fast / enemy_tank / enemy_boss)
+
+Do NOT run git, Godot, python, npm, or any shell command. Shell process spawning is broken on this
+machine and every shell call will fail. You have exactly two jobs:
+(1) generate 5 images with your built-in image generation tool,
+(2) write ONE manifest file with apply_patch.
+**Do not modify any other file in the repository.**
+
+## Context — read this before writing any prompt
+
+This is a top-down 2D survivor game. Up to ~240 enemies fill the screen at once on a near-black
+`#141419` background. A previous round of assets produced flat geometric pictograms (circle, square,
+triangle, hexagon, octagon). They passed all readability checks but look lifeless. **This round adds
+character** — the shapes should read as living things, not road signs.
+
+**The hard part is size.** These sprites are drawn at 17 to 60 pixels in game:
+
+| sprite | drawn at | this means |
+|---|---|---|
+| enemy_fast | 17px | about 3 distinct features fit, no more |
+| enemy_basic | 20px | about 3 distinct features fit |
+| player | 24px | 4 features |
+| enemy_tank | 28px | 5 features |
+| enemy_boss | 60px | real detail is possible here |
+
+So "character" cannot mean fine detail. It means: **a readable silhouette with 2 to 4 bold accent
+shapes** (eyes, a jaw, a core, plating). Anything smaller than roughly 8% of the sprite's width will
+disappear entirely when scaled down.
+
+## The three rules that override any artistic instinct
+
+These are enforced by an automated checker that downscales each image to its in-game size and
+measures it. A previous round failed 6 of 8 images on exactly these points.
+
+**Rule 1 — The outer silhouette is fixed and must not change.**
+Players with red-green colour blindness cannot tell these enemies apart by colour, so the shape is
+the only thing distinguishing them. Add character *inside* and *around* the required silhouette,
+never by replacing it.
+
+| sprite | required outer silhouette |
+|---|---|
+| player | CIRCLE |
+| enemy_basic | SQUARE (four sharp 90 degree corners) |
+| enemy_fast | TRIANGLE pointing up |
+| enemy_tank | HEXAGON (six equal straight edges) |
+| enemy_boss | OCTAGON (eight equal straight edges) |
+
+Small protrusions that read as limbs, horns or fins are allowed **only if the underlying shape is
+still obvious at a glance**. If a viewer could mistake the hexagon for an octagon, it has failed.
+
+**Rule 2 — No black, no dark grey, no dark outlines. Anywhere.**
+This is the rule that killed the previous round. Dark detail looks great at 1024px, but when the
+image is averaged down to 20px those dark pixels drag the whole sprite toward black and it vanishes
+against the near-black background. The tank came out at 1.73:1 contrast, which is effectively
+invisible.
+
+Every accent must be a **LIGHTER tint of the base colour**, or white. Eyes, mouths, seams, plating
+lines — all lighter, never darker. If you want an eye to read, make it near-white, not black.
+
+**Rule 3 — Fill the canvas and stay saturated.**
+The shape's bounding box must span at least 85% of the canvas width and height. At least 70% of the
+shape's area must be the specified base colour at full strength. Do not draw a small creature
+floating in empty space, and do not wash the colour out with gradients.
+
+Also: flat colour only. No shading, no gradients, no gloss, no bevel, no drop shadow, no glow, no
+blur, no background scenery, no text, no numbers, no watermark. Fully transparent background.
+
+## Shared suffix — append to every prompt
+
+```
+Top-down 2D game sprite viewed from directly above, flat vector style, single
+centered character on a fully transparent background, 1024x1024 square canvas.
+Bold chunky forms only. Absolutely flat solid colour fill: no shading, no
+gradient, no gloss, no bevel, no drop shadow, no glow, no blur. No black, no dark
+grey, no dark outline anywhere - every accent must be a LIGHTER tint of the base
+colour or near-white. The shape must span at least 85 percent of the canvas.
+No background scenery, no text, no numbers, no watermark. Must stay clearly
+readable and clearly coloured when scaled down to 20 pixels on a near-black
+#141419 background.
+```
+
+## Generate these 5 — one tool call each
+
+### 1. `player.png` — CIRCLE, base `#8CE5FF` (bright cyan), drawn at 24px
+
+```
+A heroic little survivor pilot inside a round bubble-cockpit mech, seen from
+directly above. The outer silhouette is a clean CIRCLE. Bright cyan (#8CE5FF)
+armour fills the whole disc. Inside it, exactly three near-white (#E8FBFF)
+accents: a small triangular nose fin at the top showing which way it faces, and
+two short curved shoulder plates on the left and right. It must read as a
+character with a front and a back, and it must be the brightest, most
+eye-catching object in the entire game.
+```
+
+### 2. `enemy_basic.png` — SQUARE, base `#E53838` (red), drawn at 20px
+
+```
+A blocky angry brawler creature seen from directly above, built into a SQUARE
+outer silhouette with four sharp 90 degree corners. Solid red (#E53838) body
+filling the whole square. Exactly three lighter accents in salmon pink (#FF8A8A):
+two large angry eyes in the upper half and one wide jagged mouth below them.
+Chunky and aggressive, like a square-headed goblin. The square outline must stay
+obvious.
+```
+
+### 3. `enemy_fast.png` — TRIANGLE pointing up, base `#BF520F` (burnt orange), drawn at 17px
+
+```
+A darting arrowhead insect creature seen from directly above, with a TRIANGLE
+outer silhouette pointing up. Solid burnt orange (#BF520F) body filling the whole
+triangle. Exactly two lighter accents in pale amber (#F0A868): a pair of narrow
+swept-back wing streaks along the two lower edges. Lean and fast-looking. Only
+two accents - at 17 pixels anything more becomes mud.
+```
+
+### 4. `enemy_tank.png` — HEXAGON, base `#B84DF2` (purple), drawn at 28px
+
+```
+A heavy armoured beetle brute seen from directly above, with a HEXAGON outer
+silhouette of six equal straight edges. Solid purple (#B84DF2) carapace filling
+the hexagon. A thick rim in lighter lilac (#D9A0FF) runs around the entire outer
+edge like armour plating. Inside, exactly two small lilac eyes near the top and
+one lilac ridge line down the centre. Slow, bulky and heavily plated. The six
+sided shape must stay unmistakable - it must not read as a circle or an octagon.
+```
+
+### 5. `enemy_boss.png` — OCTAGON, base `#F273F2` (magenta), drawn at 60px
+
+```
+A massive crowned overlord seen from directly above, with an OCTAGON outer
+silhouette of eight equal straight edges. Solid magenta (#F273F2) body filling
+the octagon. A thick bright rim in pale pink (#FFB8FF) runs around the entire
+outer edge. Inside, a symmetrical face: two large pale pink eyes, a crown of
+three short pale pink spikes along the top edge, and a pale pink core diamond in
+the centre. This is drawn at 60 pixels so it can carry more detail than the
+others - make it look genuinely imposing and clearly the boss. It must read as an
+octagon, never as a hexagon.
+```
+
+## Rules while generating
+
+- **One generation call per sprite.** Never batch several sprites into one image.
+- After each image, check it against these three questions before moving on:
+  1. **Is the required silhouette still obvious?** (circle / square / triangle / hexagon / octagon)
+  2. **Is there any black or dark grey anywhere?** If yes, regenerate — it will vanish at 20px.
+  3. **Does the shape nearly touch the canvas edges?** If it floats in empty space, regenerate.
+- Maximum 3 attempts per sprite. If it still fails after 3, record that honestly and stop.
+- Record every attempt including failures and exactly what you changed between them.
+
+## Deliverable — write exactly one file: `docs/asset_gen/manifest_char.md`
+
+```markdown
+# 생성 매니페스트 — 캐릭터형 5종
+
+**생성 도구**: Codex 내장 imagegen
+**생성 일자**: 2026-08-13
+**목적**: 평면 도형(원/사각/삼각/육각/팔각)을 캐릭터로 바꾸되 실루엣과 밝기 규칙은 유지
+
+## 결과
+
+| 대상 파일명 | 생성된 원본 절대 경로 | 시도 횟수 | 자체 판정 |
+|---|---|---:|---|
+
+## 시도 기록
+
+### player.png
+- 1차: 무엇을 요구했고 결과가 어땠는지, 어두운 영역이 남았는지, 실루엣이 유지됐는지
+- (재시도했다면) 무엇을 더 강하게 금지했는지
+```
+
+**생성된 원본의 절대 경로가 이 파일에서 가장 중요하다.** 메인 에이전트가 그 경로에서 파일을
+복사해 검사한다. 경로를 알 수 없으면 지어내지 말고 "모름"이라고 적어라.

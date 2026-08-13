@@ -31,8 +31,13 @@ const DANGER_HEALTH_RATIO: float = 0.3
 const DANGER_BLINK_COLOUR: Color = Color(1.0, 0.25, 0.25)
 const DANGER_BLINK_SPEED: float = 6.0
 
-var _sprite: Polygon2D = null
-var _base_sprite_colour: Color = Color.WHITE
+## 그림에 칠해진 기준 색. 스프라이트가 텍스처가 되면서 노드에서 읽을 수 없게 됐으므로
+## 여기에 명시한다. docs/ASSETS.md 3-0절 표의 플레이어 색과 같아야 한다.
+const BASE_SPRITE_COLOUR: Color = Color(0.55, 0.90, 1.00)
+
+var _sprite: Sprite2D = null
+var _danger_overlay: Sprite2D = null
+var _base_sprite_colour: Color = BASE_SPRITE_COLOUR
 var _danger_blink_time: float = 0.0
 var _invincibility_remaining: float = 0.0
 var _is_dead: bool = false
@@ -47,9 +52,8 @@ func _ready() -> void:
 	_hurtbox = get_node_or_null("Hurtbox") as Area2D
 	if _hurtbox == null:
 		push_error("Player is missing its Hurtbox Area2D.")
-	_sprite = get_node_or_null("Sprite") as Polygon2D
-	if _sprite != null:
-		_base_sprite_colour = _sprite.color
+	_sprite = get_node_or_null("Sprite") as Sprite2D
+	_danger_overlay = get_node_or_null("Danger") as Sprite2D
 
 
 func _physics_process(delta: float) -> void:
@@ -74,21 +78,30 @@ func _physics_process(delta: float) -> void:
 ## **화면이 통째로 빨개져서** 적과 젬이 잘 안 보였다. 위험은 시선이 이미 가 있는
 ## 주인공에게 표시하는 편이 읽기 쉽고 화면도 덜 가린다.
 func _update_danger_blink(delta: float) -> void:
-	if _sprite == null:
-		return
-	# 피격 무적 중에는 건드리지 않는다 — 다른 연출과 겹치면 둘 다 안 읽힌다.
-	if max_health <= 0.0:
+	if _danger_overlay == null or max_health <= 0.0:
 		return
 	if health / max_health > DANGER_HEALTH_RATIO or _is_dead:
 		if _danger_blink_time != 0.0:
 			_danger_blink_time = 0.0
-			_sprite.color = _base_sprite_colour
+			_set_danger_alpha(0.0)
 		return
 
 	_danger_blink_time += delta
-	# 0..1 사이를 오가는 부드러운 맥동. 0이면 평소 색, 1이면 완전히 빨강.
+	# 0..1 사이를 오가는 부드러운 맥동.
 	var pulse: float = (sin(_danger_blink_time * DANGER_BLINK_SPEED) + 1.0) * 0.5
-	_sprite.color = _base_sprite_colour.lerp(DANGER_BLINK_COLOUR, pulse)
+	_set_danger_alpha(pulse)
+
+
+func _set_danger_alpha(alpha: float) -> void:
+	if _danger_overlay == null:
+		return
+	var tint: Color = _danger_overlay.self_modulate
+	tint.a = alpha
+	_danger_overlay.self_modulate = tint
+
+
+func get_danger_overlay_alpha() -> float:
+	return _danger_overlay.self_modulate.a if _danger_overlay != null else 0.0
 
 
 func is_low_health() -> bool:

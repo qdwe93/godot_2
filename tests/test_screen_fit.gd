@@ -176,27 +176,25 @@ func _case_low_health_shows_on_player() -> void:
 	if player == null or not player.has_method(&"is_low_health"):
 		_record("low_health_shows_on_player", false, "player_or_api_missing")
 		return
-	var sprite: Polygon2D = player.get_node_or_null("Sprite") as Polygon2D
-	if sprite == null:
-		_record("low_health_shows_on_player", false, "sprite_missing")
+	if not player.has_method(&"get_danger_overlay_alpha"):
+		_record("low_health_shows_on_player", false, "danger_overlay_api_missing")
 		return
 
-	var base_colour: Color = Color(player.call(&"get_base_sprite_colour"))
 	var max_health: float = float(player.get(&"max_health"))
 	player.set(&"health", max_health * 0.1)
 
-	# 맥동하므로 여러 프레임을 보며 "평소 색과 달라지는 순간"이 있는지 본다.
+	# M15에서 스프라이트가 텍스처가 되어 색을 직접 못 바꾼다. 같은 그림을 빨간색으로
+	# 칠한 Danger 오버레이의 알파를 맥동시키므로, 그 알파가 오르는지를 본다.
 	var changed: bool = false
 	for _frame in range(40):
 		player.call(&"_update_danger_blink", 1.0 / 60.0)
-		if not sprite.color.is_equal_approx(base_colour):
+		if float(player.call(&"get_danger_overlay_alpha")) > 0.0:
 			changed = true
 			break
 
 	var low: bool = bool(player.call(&"is_low_health"))
 	_record("low_health_shows_on_player", low and changed,
-		"is_low=%s colour_changed=%s base=%s now=%s" % [
-			str(low).to_lower(), str(changed).to_lower(), str(base_colour), str(sprite.color)])
+		"is_low=%s overlay_alpha=%.2f" % [str(low).to_lower(), float(player.call(&"get_danger_overlay_alpha"))])
 
 
 func _record(case_name: String, ok: bool, detail: String) -> void:

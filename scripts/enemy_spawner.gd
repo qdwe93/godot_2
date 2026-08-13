@@ -98,23 +98,8 @@ func _spawn_enemy(variant_id: StringName, health_multiplier: float, apply_varian
 		enemy.set("speed", float(enemy_type.get("speed", 60.0)))
 		enemy.set("contact_damage", float(enemy_type.get("contact_damage", 5.0)))
 		enemy.scale = Vector2.ONE * float(enemy_type.get("scale", 1.0))
-		var sprite: Polygon2D = enemy.get_node_or_null("Sprite") as Polygon2D
-		if sprite != null:
-			var sprite_color: Color = Color(enemy_type.get("color", Color.WHITE))
-			var shape_id: StringName = StringName(enemy_type.get("shape", &"square"))
-			var shape_points: PackedVector2Array = WaveData.get_shape_points(shape_id, 10.0)
-			sprite.color = sprite_color
-			sprite.polygon = shape_points
-			var outline: Line2D = enemy.get_node_or_null("Outline") as Line2D
-			if outline != null:
-				var outline_width: float = float(enemy_type.get("outline_width", 0.0))
-				outline.points = shape_points
-				outline.closed = true
-				outline.width = outline_width
-				outline.default_color = sprite_color.lightened(0.45)
-				outline.visible = outline_width > 0.0
+		_apply_variant_texture(enemy, enemy_type)
 
-	# 실제 뷰포트 기준. 기준 해상도로 계산하면 넓은 화면에서 적이 화면 안에 생긴다.
 	var screen_center: Vector2 = Arena.get_center(self)
 	var spawn_radius: float = Arena.get_spawn_radius(self, spawn_margin)
 	var angle: float = randf() * TAU
@@ -131,6 +116,26 @@ func _spawn_enemy(variant_id: StringName, health_multiplier: float, apply_varian
 	enemy.global_position = screen_center + spawn_offset
 	enemy.add_to_group("enemies")
 	return enemy
+
+
+## 변종에 맞는 그림을 스프라이트와 번쩍임 오버레이 양쪽에 넣는다.
+##
+## 예전에는 Polygon2D 의 color / polygon 을 주입했다. 스프라이트로 바꾸면서 그 경로가
+## 통째로 사라졌는데, **에러 없이 조용히 죽는 종류의 변경**이라 여기 한곳으로 모았다.
+func _apply_variant_texture(enemy: Node, enemy_type: Dictionary) -> void:
+	var texture_path: String = str(enemy_type.get("texture", ""))
+	if texture_path.is_empty():
+		return
+	var texture: Texture2D = load(texture_path) as Texture2D
+	if texture == null:
+		push_error("EnemySpawner: could not load enemy texture '%s'." % texture_path)
+		return
+	var sprite: Sprite2D = enemy.get_node_or_null("Sprite") as Sprite2D
+	if sprite != null:
+		sprite.texture = texture
+	var flash: Sprite2D = enemy.get_node_or_null("Flash") as Sprite2D
+	if flash != null:
+		flash.texture = texture
 
 
 func stop() -> void:

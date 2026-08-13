@@ -136,6 +136,7 @@ const PHASES: Array[Dictionary] = [
 
 const ENEMY_TYPES: Dictionary = {
 	&"basic": {
+		"texture": "res://assets/sprites/enemy_basic.png",
 		"health": 10.0,
 		"gem_value": 1.0,
 		"speed": 60.0,
@@ -146,6 +147,7 @@ const ENEMY_TYPES: Dictionary = {
 		"outline_width": 0.0,
 	},
 	&"fast": {
+		"texture": "res://assets/sprites/enemy_fast.png",
 		"health": 6.0,
 		"gem_value": 1.0,
 		"speed": 115.0,
@@ -156,6 +158,7 @@ const ENEMY_TYPES: Dictionary = {
 		"outline_width": 0.0,
 	},
 	&"tank": {
+		"texture": "res://assets/sprites/enemy_tank.png",
 		"health": 40.0,
 		"gem_value": 3.0,
 		"speed": 40.0,

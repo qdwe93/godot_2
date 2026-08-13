@@ -98,14 +98,19 @@ func take_damage(amount: float) -> void:
 
 
 func _start_hit_flash() -> void:
-	var sprite: Polygon2D = get_node_or_null("Sprite") as Polygon2D
-	if sprite == null:
+	# 스프라이트가 텍스처가 되면서 "색을 흰색으로 바꿨다 되돌리기"를 못 쓴다.
+	# modulate 는 곱셈이라 색을 더 밝게 만들 수 없기 때문이다.
+	# 대신 같은 그림을 흰색으로 칠한 오버레이(Flash)의 알파를 올린다.
+	var flash: Sprite2D = get_node_or_null("Flash") as Sprite2D
+	if flash == null:
 		return
 	if not _has_base_sprite_color:
-		_base_sprite_color = sprite.color
-		_has_base_sprite_color = true
+		var sprite: Sprite2D = get_node_or_null("Sprite") as Sprite2D
+		if sprite != null:
+			_base_sprite_color = sprite.modulate
+			_has_base_sprite_color = true
 	_hit_flash_remaining = HIT_FLASH_DURATION
-	sprite.color = Color.WHITE
+	_set_flash_alpha(1.0)
 
 
 func _update_hit_flash(delta: float) -> void:
@@ -114,9 +119,16 @@ func _update_hit_flash(delta: float) -> void:
 	_hit_flash_remaining = maxf(_hit_flash_remaining - delta, 0.0)
 	if _hit_flash_remaining > 0.0:
 		return
-	var sprite: Polygon2D = get_node_or_null("Sprite") as Polygon2D
-	if sprite != null and _has_base_sprite_color:
-		sprite.color = _base_sprite_color
+	_set_flash_alpha(0.0)
+
+
+func _set_flash_alpha(alpha: float) -> void:
+	var flash: Sprite2D = get_node_or_null("Flash") as Sprite2D
+	if flash == null:
+		return
+	var tint: Color = flash.self_modulate
+	tint.a = alpha
+	flash.self_modulate = tint
 
 
 func is_hit_flashing() -> bool:

@@ -1,0 +1,127 @@
+# 작업: 캐릭터형 스프라이트 표적 재생성 2종 (player / enemy_fast)
+
+Do NOT run git, Godot, python, npm, or any shell command. Shell process spawning is broken on this
+machine and every shell call will fail. Two jobs only:
+(1) generate 2 images with your built-in image generation tool,
+(2) write ONE manifest file with apply_patch.
+**Do not modify any other file.** The other three sprites (enemy_basic, enemy_tank, enemy_boss)
+passed measurement and are NOT being regenerated.
+
+## Why these two are being regenerated — measured, not guessed
+
+Each image was downscaled to the size it is actually drawn at in the game and measured against the
+near-black `#141419` background. Three of your five passed. These two did not.
+
+| sprite | drawn at | measured | verdict |
+|---|---|---|---|
+| enemy_basic | 20px | contrast 5.13:1, coverage ok | **passed, kept** |
+| enemy_tank | 28px | contrast 6.04:1, coverage ok | **passed, kept** |
+| enemy_boss | 60px | contrast 7.68:1, coverage ok | **passed, kept** |
+| player | 24px | **dark blob in the centre** | fails: dark pixels are banned |
+| enemy_fast | 17px | **coverage 22%, needs 35%** | fails: too thin, turns to mud |
+
+Note: your own report judged all five as failures. The measurement disagrees — three were fine.
+Judge by the two specific defects below, not by general dissatisfaction.
+
+## Defect 1 — `player.png` has a dark smudge in the middle
+
+The disc is a good bright cyan and the circle silhouette is correct. But there is a **dark grey/black
+soft blob in the centre** of the disc, plus a soft radial gradient around it.
+
+This matters more for the player than for anything else: the player is required to be **the
+brightest object in the entire game**, and dark pixels in the middle drag its average brightness
+down. Measured brightness came out at 0.85x of target because of this blob.
+
+**No dark centre. No gradient. No soft shading. The disc is one flat cyan colour.**
+
+## Defect 2 — `enemy_fast.png` is too thin to survive 17 pixels
+
+You drew a detailed insect with long thin antennae and six spindly legs. At 1024px it looks sharp.
+At **17 pixels** those limbs are less than one pixel wide, so they disappear into a faint smear and
+only 22% of the sprite's slot has any solid pixels in it. The result is an unreadable smudge.
+
+**This is the smallest sprite in the game.** It needs to be a compact, chunky, solid mass — think a
+dart or an arrowhead, not an insect with legs. Thin protruding limbs are banned here.
+
+## The rules (unchanged, both sprites)
+
+- Flat solid colour only. No shading, no gradient, no gloss, no bevel, no shadow, no glow, no blur.
+- **No black, no dark grey, no dark outline anywhere.** Every accent must be a LIGHTER tint of the
+  base colour or near-white.
+- The shape must span at least 85% of the canvas width and height.
+- Fully transparent background, 1024x1024, top-down view, no text, no watermark.
+
+## Shared suffix — append to both prompts
+
+```
+Top-down 2D game sprite viewed from directly above, flat vector style, single
+centered character on a fully transparent background, 1024x1024 square canvas.
+Bold chunky solid forms only, no thin parts. Absolutely flat solid colour fill:
+no shading, no gradient, no radial gradient, no soft glow, no gloss, no bevel, no
+drop shadow, no blur. No black, no dark grey, no dark outline and no dark centre
+anywhere - every accent must be a LIGHTER tint of the base colour or near-white.
+The shape must span at least 85 percent of the canvas. No background scenery, no
+text, no numbers, no watermark. Must stay clearly readable when scaled down to 17
+pixels on a near-black #141419 background.
+```
+
+## Generate these 2 — one tool call each
+
+### 1. `player.png` — CIRCLE, flat `#8CE5FF`, brightest object in the game
+
+```
+A heroic round survivor mech seen from directly above. The outer silhouette is a
+perfect CIRCLE completely filled with one flat bright cyan (#8CE5FF) colour, edge
+to edge, with absolutely nothing dark in the middle - the centre of the disc is
+the same flat cyan as the rim. On top of that flat disc sit exactly three
+near-white (#E8FBFF) shapes: one solid triangular nose fin pointing to the top
+edge, and two short thick curved shoulder plates on the left and right sides.
+Only those three accents, nothing else. No cockpit, no glass dome, no pilot, no
+window, no hole, no shadow, no gradient. It must read as the brightest and
+cleanest object in the whole game.
+```
+
+### 2. `enemy_fast.png` — TRIANGLE pointing up, flat `#BF520F`, compact and solid
+
+```
+A fast charging dart creature seen from directly above, shaped as one solid
+compact TRIANGLE pointing up, filled completely with flat burnt orange (#BF520F)
+from edge to edge. The triangle is wide and chunky and fills the canvas. On top
+of it sit exactly two solid pale amber (#F0A868) shapes: two short thick swept
+back fin wedges attached flush along the lower left and lower right edges. No
+legs, no antennae, no feelers, no thin lines, no spikes, no separated parts -
+every part must be thick and fused into the main triangle body. It must stay a
+single solid readable mass at 17 pixels.
+```
+
+## Rules while generating
+
+- One generation call per sprite.
+- After each image ask yourself:
+  1. **Is there any dark or grey area, including a soft centre shadow?** If yes, regenerate.
+  2. **Is every part thick and fused to the body?** Any thin protrusion means regenerate.
+  3. **Does the shape nearly touch the canvas edges?** If it floats, regenerate.
+- Maximum 3 attempts per sprite. Record every attempt honestly, including what you changed.
+
+## Deliverable — write exactly one file: `docs/asset_gen/manifest_char2.md`
+
+```markdown
+# 재생성 매니페스트 — 캐릭터형 2종 (player / enemy_fast)
+
+**생성 도구**: Codex 내장 imagegen
+**생성 일자**: 2026-08-13
+**재생성 사유**: player 중앙 어두운 얼룩, enemy_fast 충전율 22% (기준 35%)
+
+## 결과
+
+| 대상 파일명 | 생성된 원본 절대 경로 | 시도 횟수 | 자체 판정 |
+|---|---|---:|---|
+
+## 시도 기록
+
+### player.png
+- 1차: ...
+```
+
+**생성된 원본의 절대 경로가 가장 중요하다.** 메인 에이전트가 그 경로에서 복사해 검사한다.
+경로를 모르면 지어내지 말고 "모름"이라고 적어라.

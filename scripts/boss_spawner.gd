@@ -12,6 +12,7 @@ extends Node
 @export var boss_contact_damage: float = 25.0
 @export var boss_scale: float = 3.0
 @export var boss_color: Color = Color(0.95, 0.45, 0.95)
+@export var boss_texture_path: String = "res://assets/sprites/enemy_boss.png"
 ## 보스는 한 판에 한 마리뿐이므로 잡으면 확실한 보상이 되어야 한다.
 @export var boss_gem_value: float = 30.0
 
@@ -77,18 +78,19 @@ func spawn_boss_now() -> Node:
 	boss.set("variant_id", &"boss")
 	boss.set("target", _target)
 	boss.scale = Vector2.ONE * boss_scale
-	var sprite_node: Node = boss.get_node_or_null("Sprite")
-	if sprite_node is Polygon2D:
-		var sprite: Polygon2D = sprite_node
-		sprite.color = boss_color
-		sprite.polygon = WaveData.get_shape_points(&"octagon", 10.0)
-	var outline: Line2D = boss.get_node_or_null("Outline") as Line2D
-	if outline != null:
-		outline.points = WaveData.get_shape_points(&"octagon", 10.0)
-		outline.closed = true
-		outline.width = 3.0
-		outline.default_color = boss_color.lightened(0.5)
-		outline.visible = true
+	# 보스는 전용 그림을 쓴다. 예전에는 Polygon2D 에 팔각형 점과 색을 주입했는데,
+	# 스프라이트로 바뀌면서 그 경로는 **에러 없이 조용히 죽는다**. 그래서 텍스처가
+	# 없으면 push_error 로 알린다.
+	var boss_texture: Texture2D = load(boss_texture_path) as Texture2D
+	if boss_texture == null:
+		push_error("BossSpawner: could not load boss texture '%s'." % boss_texture_path)
+	else:
+		var sprite: Sprite2D = boss.get_node_or_null("Sprite") as Sprite2D
+		if sprite != null:
+			sprite.texture = boss_texture
+		var flash: Sprite2D = boss.get_node_or_null("Flash") as Sprite2D
+		if flash != null:
+			flash.texture = boss_texture
 	boss.add_to_group(&"enemies")
 
 	_enemy_container.add_child(boss)
