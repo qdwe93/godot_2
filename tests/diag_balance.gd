@@ -17,7 +17,8 @@ extends Node
 ##   random  기본. GameFlow의 --auto-play가 첫 선택지를 고른다 (선택지 순서가
 ##           무작위이므로 사실상 무작위 선택이다)
 ##   greedy  화력 우선으로 고정한 최선 빌드. "선택이 나빠서 약한 것"과
-##           "화력 상한 자체가 낮은 것"을 분리하려면 이 값이 필요하다
+##           "화력 상한 자체가 낮은 것"을 분리하려면 이 값이 필요하다.
+##           우선순위는 tools/balance_sim.py 의 GREEDY 와 같은 순서로 맞춘다
 ##
 ## 출력 규약:
 ##   DIAG_START  mode=... max=...
@@ -49,7 +50,7 @@ var _pick_strategy: String = "random"
 ## 화력(산탄·궤도구·장갑)을 먼저 채우고, 생존(심장)과 기동(신발)을 뒤에 둔다.
 ## 왕관은 경험치만 늘려 직접 화력이 되지 않으므로 마지막이다.
 const GREEDY_PRIORITY: Array[StringName] = [
-	&"shotgun", &"orbital", &"gloves", &"heart", &"shoes", &"magnet", &"crown",
+	&"shotgun", &"orbital", &"blade", &"gloves", &"heart", &"shoes", &"magnet", &"crown",
 ]
 
 var _main: Node = null
@@ -372,12 +373,14 @@ func _print_upgrade_summary() -> void:
 	print("DIAG_UPGRADES %s" % " ".join(parts))
 	if _upgrade_manager.has_method(&"get_stat_report"):
 		var report: Dictionary = _upgrade_manager.call(&"get_stat_report")
-		print("DIAG_STATS speed=%.1f max_health=%.0f cooldown=%.3f magnet=%.1f xp_mult=%.2f shotgun=%s orbital=%s" % [
+		print("DIAG_STATS speed=%.1f max_health=%.0f regen=%.2f cooldown=%.3f magnet=%.1f xp_mult=%.2f dps=%.1f shotgun=%s orbital=%s" % [
 			float(report.get("speed", 0.0)),
 			float(report.get("max_health", 0.0)),
+			float(report.get("health_regen", 0.0)),
 			float(report.get("cooldown", 0.0)),
 			float(report.get("magnet_radius", 0.0)),
 			float(report.get("experience_multiplier", 1.0)),
+			float(report.get("theoretical_dps", 0.0)),
 			str(report.get("shotgun_unlocked", false)).to_lower(),
 			str(report.get("orbital_unlocked", false)).to_lower(),
 		])

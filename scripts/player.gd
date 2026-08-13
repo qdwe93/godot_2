@@ -13,6 +13,15 @@ signal died()
 @export var body_radius: float = 12.0
 @export var max_health: float = 100.0
 @export var invincibility_time: float = 0.5
+## 초당 체력 회복량.
+##
+## M12b에서 넣었다. 그 전까지 체력은 **오직 줄기만 했다.** 접촉 피해에 0.5초 무적이
+## 걸려 있어 한 번에 죽지는 않지만, 회복 수단이 없으니 생존 시간이
+## "총 체력 / 평균 잠식량"으로 못박힌다. 실측에서 적 30마리 언저리를 유지하며
+## 초당 0.4씩 깎여 250초에 죽었다 — 화력을 아무리 올려도 이 상한은 안 바뀐다.
+##
+## 심장(heart) 업그레이드가 레벨당 이 값을 올린다.
+@export var health_regen: float = 0.6
 
 var health: float
 var is_invincible: bool = false
@@ -38,11 +47,22 @@ func _physics_process(delta: float) -> void:
 	if _is_dead:
 		return
 
+	_apply_regen(delta)
+
 	var input_vector: Vector2 = Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	velocity = input_vector * speed
 	move_and_slide()
 	_clamp_to_screen()
 	_poll_contact_damage()
+
+
+func _apply_regen(delta: float) -> void:
+	if health_regen <= 0.0 or health >= max_health:
+		return
+	var healed: float = minf(health + health_regen * delta, max_health)
+	if not is_equal_approx(healed, health):
+		health = healed
+		health_changed.emit(health, max_health)
 
 
 func take_damage(amount: float) -> void:

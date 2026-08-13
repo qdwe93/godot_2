@@ -45,7 +45,11 @@ func drop_gem(at_position: Vector2, value: float = 1.0) -> Node:
 	return gem
 
 
-func on_enemy_died(enemy_position: Vector2) -> void:
+func on_enemy_died(enemy_position: Vector2, gem_value: float = 1.0) -> void:
 	# 적의 died는 물리 스텝 중(투사체 body_entered)에 발생한다.
 	# 그 시점에 충돌 도형을 가진 젬을 트리에 추가하면 물리 서버가 거부하므로 다음 프레임으로 미룬다.
-	drop_gem.call_deferred(enemy_position)
+	#
+	# gem_value는 시그널이 아니라 **연결하는 쪽에서 bind()로** 실어 보낸다.
+	# died의 인자를 늘리면 이 시그널에 붙은 HUD와 보스 스포너까지 전부 고쳐야 하는데,
+	# 값을 아는 곳은 적을 만든 스포너뿐이므로 bind가 맞는 도구다.
+	drop_gem.call_deferred(enemy_position, gem_value)

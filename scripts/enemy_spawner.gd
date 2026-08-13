@@ -126,7 +126,10 @@ func _spawn_enemy(variant_id: StringName, health_multiplier: float, apply_varian
 	enemy.set("target", _target)
 	if pickup_spawner != null and enemy.has_signal("died"):
 		var died_signal: Signal = enemy.get("died")
-		died_signal.connect(Callable(pickup_spawner, "on_enemy_died"))
+		var gem_value: float = 1.0
+		if apply_variant:
+			gem_value = float(WaveData.get_enemy_type(variant_id).get("gem_value", 1.0))
+		died_signal.connect(Callable(pickup_spawner, "on_enemy_died").bind(gem_value))
 	_enemy_container.add_child(enemy)
 	enemy.global_position = screen_center + spawn_offset
 	enemy.add_to_group("enemies")

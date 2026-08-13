@@ -2,93 +2,142 @@ class_name WaveData
 extends RefCounted
 
 
+## 난이도 곡선 (M12b 재설계)
+##
+## 설계 규칙 세 가지. 어기면 M12a에서 실측한 실패가 재발한다.
+##
+## 1. **`enemies_per_spawn`은 1로 고정한다.** 이 값을 1에서 2로 올리면 그 순간
+##    스폰율이 2배가 되는데, `spawn_interval`은 (불변식이자 설계 의도상) 되돌릴 수
+##    없어서 그 절벽을 흡수할 방법이 없다. 예전 곡선의 60초 지점이 정확히 이
+##    문제였다 — 스폰율이 1.25에서 3.33/초로 한 단계에서 2.7배 뛰었다.
+##    밀도는 오직 `spawn_interval`로만 올린다.
+## 2. **연속한 두 페이즈의 스폰율 비는 1.5배를 넘지 않는다.** 아래 표는 최대 1.48배다.
+## 3. **체력 배율은 플레이어 화력 성장과 나란히 간다.** 화력 상한이 71배
+##    (10 -> 710 dps)이므로 체력 배율 9배 + 구성 이동(평균 체력 10 -> 27)으로
+##    받는다.
+##
+## 이 표는 `tools/balance_sim.py`의 `build_phases(14, 900.0, 0.83, 4.0, 5.0)`이
+## 생성한 값이다. **손으로 고치지 말고 그 스크립트로 다시 뽑아라.**
 const PHASES: Array[Dictionary] = [
 	{
 		"start_time": 0.0,
-		"spawn_interval": 1.2,
+		"spawn_interval": 1.20,
 		"max_enemies": 40,
 		"enemies_per_spawn": 1,
-		"health_multiplier": 1.0,
+		"health_multiplier": 1.00,
 		"weights": {&"basic": 1},
 	},
 	{
-		"start_time": 30.0,
-		"spawn_interval": 0.8,
+		"start_time": 61.0,
+		"spawn_interval": 0.93,
 		"max_enemies": 60,
 		"enemies_per_spawn": 1,
-		"health_multiplier": 1.2,
+		"health_multiplier": 1.13,
 		"weights": {&"basic": 1},
 	},
 	{
-		"start_time": 60.0,
-		"spawn_interval": 0.6,
-		"max_enemies": 80,
-		"enemies_per_spawn": 2,
-		"health_multiplier": 1.5,
-		"weights": {&"basic": 3, &"fast": 1},
+		"start_time": 126.0,
+		"spawn_interval": 0.79,
+		"max_enemies": 70,
+		"enemies_per_spawn": 1,
+		"health_multiplier": 1.28,
+		"weights": {&"basic": 4, &"fast": 1},
 	},
 	{
-		"start_time": 120.0,
-		"spawn_interval": 0.45,
-		"max_enemies": 110,
-		"enemies_per_spawn": 2,
-		"health_multiplier": 2.0,
-		"weights": {&"basic": 3, &"fast": 2},
+		"start_time": 193.0,
+		"spawn_interval": 0.69,
+		"max_enemies": 90,
+		"enemies_per_spawn": 1,
+		"health_multiplier": 1.45,
+		"weights": {&"basic": 4, &"fast": 1},
 	},
 	{
-		"start_time": 180.0,
-		"spawn_interval": 0.35,
-		"max_enemies": 140,
-		"enemies_per_spawn": 3,
-		"health_multiplier": 2.8,
+		"start_time": 261.0,
+		"spawn_interval": 0.60,
+		"max_enemies": 100,
+		"enemies_per_spawn": 1,
+		"health_multiplier": 1.64,
+		"weights": {&"basic": 4, &"fast": 2},
+	},
+	{
+		"start_time": 330.0,
+		"spawn_interval": 0.54,
+		"max_enemies": 120,
+		"enemies_per_spawn": 1,
+		"health_multiplier": 1.86,
+		"weights": {&"basic": 4, &"fast": 2},
+	},
+	{
+		"start_time": 400.0,
+		"spawn_interval": 0.48,
+		"max_enemies": 130,
+		"enemies_per_spawn": 1,
+		"health_multiplier": 2.10,
 		"weights": {&"basic": 3, &"fast": 2, &"tank": 1},
 	},
 	{
-		"start_time": 240.0,
-		"spawn_interval": 0.3,
+		"start_time": 470.0,
+		"spawn_interval": 0.43,
+		"max_enemies": 150,
+		"enemies_per_spawn": 1,
+		"health_multiplier": 2.38,
+		"weights": {&"basic": 3, &"fast": 2, &"tank": 1},
+	},
+	{
+		"start_time": 541.0,
+		"spawn_interval": 0.39,
 		"max_enemies": 160,
-		"enemies_per_spawn": 3,
-		"health_multiplier": 3.5,
-		"weights": {&"basic": 2, &"fast": 2, &"tank": 2},
+		"enemies_per_spawn": 1,
+		"health_multiplier": 2.69,
+		"weights": {&"basic": 3, &"fast": 3, &"tank": 2},
 	},
-	# 240초 이후에는 플레이어의 성장만 계속되어 난이도가 멈추지 않도록 페이즈를 추가한다.
 	{
-		"start_time": 330.0,
-		"spawn_interval": 0.26,
+		"start_time": 612.0,
+		"spawn_interval": 0.36,
 		"max_enemies": 180,
-		"enemies_per_spawn": 4,
-		"health_multiplier": 5.0,
-		"weights": {&"basic": 2, &"fast": 3, &"tank": 2},
+		"enemies_per_spawn": 1,
+		"health_multiplier": 3.05,
+		"weights": {&"basic": 3, &"fast": 3, &"tank": 2},
 	},
 	{
-		"start_time": 450.0,
-		"spawn_interval": 0.22,
-		"max_enemies": 200,
-		"enemies_per_spawn": 4,
-		"health_multiplier": 7.5,
-		"weights": {&"basic": 1, &"fast": 3, &"tank": 3},
+		"start_time": 683.0,
+		"spawn_interval": 0.33,
+		"max_enemies": 190,
+		"enemies_per_spawn": 1,
+		"health_multiplier": 3.45,
+		"weights": {&"basic": 2, &"fast": 3, &"tank": 3},
 	},
 	{
-		"start_time": 600.0,
-		"spawn_interval": 0.18,
+		"start_time": 755.0,
+		"spawn_interval": 0.30,
+		"max_enemies": 210,
+		"enemies_per_spawn": 1,
+		"health_multiplier": 3.90,
+		"weights": {&"basic": 2, &"fast": 3, &"tank": 3},
+	},
+	{
+		"start_time": 827.0,
+		"spawn_interval": 0.27,
 		"max_enemies": 220,
-		"enemies_per_spawn": 5,
-		"health_multiplier": 11.0,
+		"enemies_per_spawn": 1,
+		"health_multiplier": 4.42,
 		"weights": {&"basic": 1, &"fast": 3, &"tank": 4},
 	},
 	{
-		"start_time": 780.0,
-		"spawn_interval": 0.15,
+		"start_time": 900.0,
+		"spawn_interval": 0.25,
 		"max_enemies": 240,
-		"enemies_per_spawn": 5,
-		"health_multiplier": 16.0,
-		"weights": {&"fast": 3, &"tank": 5},
+		"enemies_per_spawn": 1,
+		"health_multiplier": 5.00,
+		"weights": {&"basic": 1, &"fast": 3, &"tank": 4},
 	},
 ]
+
 
 const ENEMY_TYPES: Dictionary = {
 	&"basic": {
 		"health": 10.0,
+		"gem_value": 1.0,
 		"speed": 60.0,
 		"contact_damage": 5.0,
 		"color": Color(0.9, 0.22, 0.22),
@@ -98,6 +147,7 @@ const ENEMY_TYPES: Dictionary = {
 	},
 	&"fast": {
 		"health": 6.0,
+		"gem_value": 1.0,
 		"speed": 115.0,
 		"contact_damage": 4.0,
 		"color": Color(0.75, 0.32, 0.06),
@@ -107,6 +157,7 @@ const ENEMY_TYPES: Dictionary = {
 	},
 	&"tank": {
 		"health": 40.0,
+		"gem_value": 3.0,
 		"speed": 40.0,
 		"contact_damage": 12.0,
 		"color": Color(0.72, 0.3, 0.95),

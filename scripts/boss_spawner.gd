@@ -12,6 +12,8 @@ extends Node
 @export var boss_contact_damage: float = 25.0
 @export var boss_scale: float = 3.0
 @export var boss_color: Color = Color(0.95, 0.45, 0.95)
+## 보스는 한 판에 한 마리뿐이므로 잡으면 확실한 보상이 되어야 한다.
+@export var boss_gem_value: float = 30.0
 
 var _enemy_container: Node
 var _target: Node2D
@@ -111,4 +113,4 @@ func _connect_pickup_spawner(boss: Node) -> void:
 		push_error("BossSpawner: no node in group 'pickup_spawner' with on_enemy_died(); the boss will not drop experience.")
 		return
 	if boss.has_signal(&"died"):
-		boss.connect(&"died", Callable(pickup_spawner, "on_enemy_died"))
+		boss.connect(&"died", Callable(pickup_spawner, "on_enemy_died").bind(boss_gem_value))

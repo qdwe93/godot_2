@@ -31,16 +31,20 @@ import argparse
 # scripts/wave_data.gd 의 PHASES 와 같은 값이다. 바꿨으면 여기도 바꾼다.
 PHASES = [
     # start, interval, max_enemies, per_spawn, hp_mult, weights
-    (0.0, 1.20, 40, 1, 1.0, {"basic": 1}),
-    (30.0, 0.80, 60, 1, 1.2, {"basic": 1}),
-    (60.0, 0.60, 80, 2, 1.5, {"basic": 3, "fast": 1}),
-    (120.0, 0.45, 110, 2, 2.0, {"basic": 3, "fast": 2}),
-    (180.0, 0.35, 140, 3, 2.8, {"basic": 3, "fast": 2, "tank": 1}),
-    (240.0, 0.30, 160, 3, 3.5, {"basic": 2, "fast": 2, "tank": 2}),
-    (330.0, 0.26, 180, 4, 5.0, {"basic": 2, "fast": 3, "tank": 2}),
-    (450.0, 0.22, 200, 4, 7.5, {"basic": 1, "fast": 3, "tank": 3}),
-    (600.0, 0.18, 220, 5, 11.0, {"basic": 1, "fast": 3, "tank": 4}),
-    (780.0, 0.15, 240, 5, 16.0, {"fast": 3, "tank": 5}),
+    (0.0, 1.20, 40, 1, 1.00, {"basic": 1}),
+    (61.0, 0.93, 60, 1, 1.13, {"basic": 1}),
+    (126.0, 0.79, 70, 1, 1.28, {"basic": 4, "fast": 1}),
+    (193.0, 0.69, 90, 1, 1.45, {"basic": 4, "fast": 1}),
+    (261.0, 0.60, 100, 1, 1.64, {"basic": 4, "fast": 2}),
+    (330.0, 0.54, 120, 1, 1.86, {"basic": 4, "fast": 2}),
+    (400.0, 0.48, 130, 1, 2.10, {"basic": 3, "fast": 2, "tank": 1}),
+    (470.0, 0.43, 150, 1, 2.38, {"basic": 3, "fast": 2, "tank": 1}),
+    (541.0, 0.39, 160, 1, 2.69, {"basic": 3, "fast": 3, "tank": 2}),
+    (612.0, 0.36, 180, 1, 3.05, {"basic": 3, "fast": 3, "tank": 2}),
+    (683.0, 0.33, 190, 1, 3.45, {"basic": 2, "fast": 3, "tank": 3}),
+    (755.0, 0.30, 210, 1, 3.90, {"basic": 2, "fast": 3, "tank": 3}),
+    (827.0, 0.27, 220, 1, 4.42, {"basic": 1, "fast": 3, "tank": 4}),
+    (900.0, 0.25, 240, 1, 5.00, {"basic": 1, "fast": 3, "tank": 4}),
 ]
 
 ENEMY_HP = {"basic": 10.0, "fast": 6.0, "tank": 40.0}
@@ -52,9 +56,12 @@ ORBITAL_DAMAGE, ORBITAL_INTERVAL = 4.0, 0.5
 
 # scripts/upgrade_data.gd
 GLOVES_MULTIPLIER, GLOVES_MAX_LEVEL = 0.92, 5
+BLADE_MULTIPLIER, BLADE_MAX_LEVEL = 1.30, 8
+SHOTGUN_MAX_LEVEL, ORBITAL_MAX_LEVEL = 5, 5
 
 # 업그레이드 선택 횟수의 총합 = 최대 레벨의 합
-TOTAL_UPGRADE_PICKS = 5 + 5 + 3 + 5 + 5 + 1 + 1
+# shoes5 heart5 magnet3 gloves5 crown5 blade8 shotgun5 orbital5
+TOTAL_UPGRADE_PICKS = 5 + 5 + 3 + 5 + 5 + 8 + 5 + 5
 
 # scripts/level_system.gd — 다음 레벨까지 필요한 경험치
 XP_BASE, XP_STEP = 5.0, 3.0
@@ -65,13 +72,15 @@ GEM_VALUE = 1.0
 MEASURED_PICKUP_RATE = 0.65
 
 
-def dps(gloves_level: int, has_shotgun: bool, has_orbital: bool) -> float:
+def dps(gloves_level: int, shotgun_level: int, orbital_level: int, blade_level: int = 0) -> float:
     cooldown_factor = GLOVES_MULTIPLIER ** gloves_level
-    total = WEAPON_DAMAGE / (WEAPON_COOLDOWN * cooldown_factor)
-    if has_shotgun:
-        total += SHOTGUN_DAMAGE * SHOTGUN_PELLETS / (SHOTGUN_COOLDOWN * cooldown_factor)
-    if has_orbital:
-        total += ORBITAL_DAMAGE / ORBITAL_INTERVAL
+    damage_factor = BLADE_MULTIPLIER ** blade_level
+    total = WEAPON_DAMAGE * damage_factor / (WEAPON_COOLDOWN * cooldown_factor)
+    if shotgun_level > 0:
+        pellets = SHOTGUN_PELLETS + (shotgun_level - 1)
+        total += pellets * SHOTGUN_DAMAGE * damage_factor / (SHOTGUN_COOLDOWN * cooldown_factor)
+    if orbital_level > 0:
+        total += orbital_level * ORBITAL_DAMAGE * damage_factor / ORBITAL_INTERVAL
     return total
 
 
@@ -109,10 +118,10 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    floor_dps = dps(0, False, False)
-    ceiling_dps = dps(GLOVES_MAX_LEVEL, True, True)
-    print(f"화력 하한 (업그레이드 0개)      {floor_dps:6.2f} dps")
-    print(f"화력 상한 (장갑5 + 산탄 + 궤도구) {ceiling_dps:6.2f} dps  = 하한의 {ceiling_dps / floor_dps:.2f}배")
+    floor_dps = dps(0, 0, 0, 0)
+    ceiling_dps = dps(GLOVES_MAX_LEVEL, SHOTGUN_MAX_LEVEL, ORBITAL_MAX_LEVEL, BLADE_MAX_LEVEL)
+    print(f"화력 하한 (업그레이드 0개)  {floor_dps:7.2f} dps")
+    print(f"화력 상한 (전부 최대)       {ceiling_dps:7.2f} dps  = 하한의 {ceiling_dps / floor_dps:.1f}배")
     print()
     print(f"{'시작':>6} {'적HP평균':>9} {'스폰/초':>8} {'처치/초(상한)':>14} {'수지':>9}  판정")
     print("-" * 66)
