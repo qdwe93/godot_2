@@ -54,113 +54,139 @@ image_generation                     stable             true
 
 ---
 
-## 3. 에셋 사양과 생성 프롬프트 (아직 미실행)
+## 3. 확정된 시각 규칙과 생성 프롬프트
 
-### 3-1. 공통 제약 — 어떤 도구를 쓰든 지켜야 하는 것
+### 3-0. 확정 규칙 (M11b에서 in-engine으로 먼저 구현하고 회귀 테스트까지 붙였다)
 
-이 게임의 화면은 배경이 `#141419`(거의 검정)이고, 후반에는 적이 **160~240마리** 동시에 뜬다.
-따라서 스프라이트는 다음을 만족해야 한다.
+에셋은 **이 규칙을 그대로 옮기는 것**이다. 규칙이 먼저이고 그림이 나중이다.
+`tests/test_visual_hierarchy.gd`가 이 규칙을 자동 검사한다 — 색을 하드코딩하지 않고 실제 씬·데이터에서 읽어 **관계**만 본다.
 
-- **투명 배경 PNG**, 정사각 캔버스, 오브젝트가 중앙에 꽉 차게
-- 탑다운(위에서 내려다본) 시점. 원근·그림자 없음
-- 그림자·글로우·아웃라인 블러 금지 (겹쳤을 때 서로를 지운다)
-- **밝은 외곽선 1~2px**은 권장 (어두운 배경에서 실루엣이 살아난다)
-- 디테일 최소화. 20px로 축소했을 때 형태가 남아야 한다
-- 텍스트·로고·워터마크 금지
+**규칙 1 — 밝기 위계.** 배경 `#141419` 위에서 WCAG 상대 휘도가 이 순서로 엄격히 감소한다.
 
-### 3-2. 필요한 스프라이트 목록
-
-| # | 이름 | 파일명(안) | 표시 크기 | 형태 문법 | 색 방향 |
+| 순위 | 요소 | 색 (Godot) | HEX | 휘도 L | 배경 대비 |
 |---|---|---|---|---|---|
-| 1 | 플레이어 | `player.png` | 24×24 | 원형 코어 + 방향 표식 | 밝은 하늘색 `#4DD9FF` — **화면에서 가장 밝아야 함** |
-| 2 | 기본 적 | `enemy_basic.png` | 20×20 | **사각형** | 빨강 `#E64040` |
-| 3 | 빠른 적 | `enemy_fast.png` | 17×17 | **삼각형**(진행 방향을 가리킴) | 주황 `#FF9926` |
-| 4 | 탱커 적 | `enemy_tank.png` | 28×28 | **두꺼운 테두리 육각형** | 자주 `#BF59F2` |
-| 5 | 보스 | `enemy_boss.png` | 60×60 | 대형 + 고대비 외곽선 | 마젠타 `#F259F2` |
-| 6 | 경험치 젬 | `xp_gem.png` | 10×10 | 마름모 | 초록 `#4DFF66` — 적보다 어둡게 |
-| 7 | 투사체 | `projectile.png` | 8×8 | 짧은 캡슐 | 호박색 `#FFE633` — **가장 어둡게** |
+| 1 | 플레이어 | (0.55, 0.90, 1.00) | `#8CE5FF` | 0.6913 | 12.92:1 |
+| 2 | 보스 | (0.95, 0.45, 0.95) | `#F273F2` | 0.3755 | 7.41:1 |
+| 3 | 탱커 | (0.72, 0.30, 0.95) | `#B84DF2` | 0.2180 | 4.67:1 |
+| 4 | 기본 적 | (0.90, 0.22, 0.22) | `#E53838` | 0.1986 | 4.33:1 |
+| 5 | 빠른 적 | (0.75, 0.32, 0.06) | `#BF520F` | 0.1712 | 3.85:1 |
+| 6 | 경험치 젬 | (0.15, 0.50, 0.22) | `#268038` | 0.1601 | 3.66:1 |
+| 7 | 투사체 | (0.62, 0.36, 0.10) | `#9E5C1A` | 0.1497 | 3.48:1 |
+| — | 궤도구(장비) | (0.28, 0.48, 0.55) | `#477A8C` | 0.1727 | 3.88:1 |
 
-> **형태를 색보다 우선한다.** 적록색각이상(남성 약 8%)에게 빨강·주황·자주는 비슷한 갈색으로 수렴한다.
-> 지금 적 3종이 전부 같은 사각형이라 색이 유일한 단서인데, 그 단서가 작동하지 않는다.
+**규칙 2 — 전 요소가 배경 대비 3:1 이상.** (비텍스트 요소의 WCAG 최소 권장)
 
-### 3-3. 프롬프트 원문 (영문 — 대부분의 생성기가 영문에 안정적이다)
+**규칙 3 — 형태로 구분한다. 색은 보조다.** 적록색각이상에서 빨강·주황·자주는 같은 갈색으로 수렴하므로 색만으로는 구분이 안 된다.
 
-**공통 접미사** (모든 프롬프트 끝에 붙인다):
+| 요소 | 형태 | 표시 크기 |
+|---|---|---|
+| 플레이어 | **원형** | 24×24 |
+| 기본 적 | **정사각형** | 20×20 |
+| 빠른 적 | **위를 가리키는 삼각형** | 17×17 |
+| 탱커 | **육각형 + 두꺼운 외곽선(3px)** | 28×28 |
+| 보스 | **팔각형 + 밝은 외곽선(3px)** | 60×60 |
+| 경험치 젬 | 마름모 | 10×10 |
+| 투사체 | 짧은 캡슐 | 8×8 |
 
-```
-top-down view, flat vector style, single centered object, transparent background,
-no drop shadow, no glow, no gradient background, no text, no watermark,
-crisp 1-2px bright outline, high contrast against near-black background,
-readable when scaled down to 20 pixels, game sprite asset
-```
+> 보스를 팔각형으로 뺀 이유: 처음엔 탱커와 같은 육각형이었는데, 미리보기 캡처에서 **탱커와 실루엣이 겹쳐** 구분이 안 됐다.
 
-**1. 플레이어**
+### 3-1. 생성 공통 제약
 
-```
-A small round sci-fi survivor drone seen from directly above, glowing light-cyan
-(#4DD9FF) body with a clear pointed front indicating facing direction,
-compact and instantly recognizable as the player character, brightest element on screen,
-<공통 접미사>
-```
+- **투명 배경 PNG**, 정사각 캔버스 1024×1024 (게임에서 20px 안팎으로 축소된다)
+- 탑다운(위에서 내려다본) 시점. 원근·그림자 없음
+- 그림자·글로우·블러 금지 — 겹쳤을 때 서로를 지운다
+- 위 표의 **실루엣을 반드시 유지한다.** 이게 색각 이상 대응의 핵심이다
+- 디테일 최소화. 20px로 축소해도 형태가 남아야 한다
+- 텍스트·숫자·로고·워터마크 금지
 
-**2. 기본 적**
+### 3-2. 복사해서 쓰는 프롬프트 (영문, v1)
 
-```
-A simple hostile blob enemy seen from directly above, solid square silhouette,
-dull red (#E64040), aggressive but plain, the most common weak enemy,
-<공통 접미사>
-```
+다른 서비스(Midjourney, DALL·E, Stable Diffusion, Nano Banana 등)에도 그대로 붙여 넣을 수 있다.
 
-**3. 빠른 적**
+**공통 접미사** — 모든 프롬프트 끝에 이걸 붙인다.
 
-```
-A fast darting enemy seen from directly above, sharp triangular silhouette
-pointing forward to convey speed and direction, orange (#FF9926), smaller than
-the basic enemy, lightweight and agile,
-<공통 접미사>
-```
-
-**4. 탱커 적**
-
-```
-A heavy armored enemy seen from directly above, thick-bordered hexagonal silhouette,
-purple (#BF59F2) with a noticeably heavier outline than other enemies,
-bulky and slow, clearly the most dangerous regular enemy,
-<공통 접미사>
+```text
+Top-down 2D game sprite, flat vector style, single centered object on a fully
+transparent background, 1024x1024 square canvas. No drop shadow, no glow, no blur,
+no background scenery, no text, no numbers, no logo-like markings, no watermark.
+Plain unbranded surfaces. Bold readable silhouette that survives being scaled down
+to 20 pixels. Designed to read clearly against a near-black #141419 background.
 ```
 
-**5. 보스**
+**1. player.png** — 원형, `#8CE5FF`, 화면에서 가장 밝아야 한다
 
-```
-A large menacing boss enemy seen from directly above, magenta (#F259F2) core with
-a bright high-contrast outline, imposing silhouette distinct from all regular enemies,
-occupies three times the area of a normal enemy,
-<공통 접미사>
-```
-
-**6. 경험치 젬**
-
-```
-A small experience gem pickup seen from directly above, diamond silhouette,
-green (#4DFF66), simple faceted crystal, subtle not flashy — it must not outshine
-the enemies or the player,
-<공통 접미사>
+```text
+A compact circular sci-fi survivor drone seen from directly above. Bright cyan
+(#8CE5FF) body with a clean circular outer silhouette and a small pointed nose
+marker showing which way it faces. It must be the brightest, most eye-catching
+object in the whole game.
 ```
 
-**7. 투사체**
+**2. enemy_basic.png** — 정사각형, `#E53838`
 
+```text
+A basic hostile enemy seen from directly above, with a strictly SQUARE outer
+silhouette. Muted red (#E53838), plain and blocky, the weakest and most common
+enemy. Keep the square shape unmistakable.
 ```
-A tiny energy bullet seen from directly above, short capsule shape, amber (#FFE633),
-minimal and unobtrusive, the least attention-grabbing element on screen,
-<공통 접미사>
+
+**3. enemy_fast.png** — 삼각형(위 방향), `#BF520F`
+
+```text
+A fast darting enemy seen from directly above, with a strictly TRIANGULAR outer
+silhouette pointing upward to convey speed and heading. Dark amber-orange
+(#BF520F), smaller and lighter than the basic enemy. Keep the triangle shape
+unmistakable.
 ```
 
-### 3-4. 생성 후 반드시 할 것
+**4. enemy_tank.png** — 육각형 + 두꺼운 외곽선, `#B84DF2`
 
-1. `assets/sprites/`에 넣고 **출처와 라이선스를 이 문서에 기록**한다 (생성 도구·모델·날짜)
+```text
+A heavy armored enemy seen from directly above, with a strictly HEXAGONAL outer
+silhouette and a noticeably thick bright border around the edge. Purple (#B84DF2),
+bulky and slow, clearly the most dangerous ordinary enemy. Keep the hexagon and
+the thick rim unmistakable.
+```
+
+**5. enemy_boss.png** — 팔각형 + 밝은 외곽선, `#F273F2`
+
+```text
+A large menacing boss enemy seen from directly above, with a strictly OCTAGONAL
+outer silhouette and a bright high-contrast rim. Magenta (#F273F2) core, imposing
+and distinct from every regular enemy. The octagon must not read as a hexagon.
+```
+
+**6. xp_gem.png** — 마름모, `#268038`
+
+```text
+A small experience gem pickup seen from directly above, with a DIAMOND (rotated
+square) silhouette. Deep green (#268038), simple faceted crystal, deliberately
+subdued so it never outshines the enemies or the player.
+```
+
+**7. projectile.png** — 짧은 캡슐, `#9E5C1A`
+
+```text
+A tiny energy bullet seen from directly above, short horizontal capsule shape.
+Dark amber (#9E5C1A), minimal and unobtrusive. It must be the least
+attention-grabbing element on screen.
+```
+
+**8. orbital.png** — 원형 코어, `#477A8C`
+
+```text
+A small orbiting defensive orb seen from directly above, simple circular core with
+a faint inner ring. Desaturated steel blue (#477A8C), quiet and secondary — it
+circles the player constantly so it must not compete for attention.
+```
+
+### 3-3. 생성 후 반드시 할 것
+
+1. `assets/sprites/`에 넣고 **생성 도구·모델·날짜를 6절 표에 기록**한다
 2. `--import`를 돌린다. 건너뛰면 실행 시 리소스를 못 찾는다
-3. `.tscn`의 `ColorRect`를 `Sprite2D`로 교체할 때 **`enemy_spawner.gd`가 `Sprite`를 `ColorRect`로 캐스팅해 색을 주입한다**(`enemy_spawner.gd:101-103`). 여기와 `boss_spawner.gd:79-82`를 같이 고쳐야 한다. 안 고치면 **에러 없이 색만 조용히 안 바뀐다**
-4. 교체 전후로 160마리 화면을 캡처해 **가독성이 실제로 좋아졌는지** 눈으로 비교한다
+3. **`Polygon2D`를 `Sprite2D`로 바꾸면 색 주입 코드가 깨진다.** `enemy_spawner.gd`, `boss_spawner.gd`, `enemy.gd`(피격 번쩍), `test_visual_hierarchy.gd`가 전부 `Sprite` 노드의 `color`를 읽고 쓴다. `Sprite2D`에는 `color`가 없고 `modulate`를 써야 한다
+4. `tests/test_visual_hierarchy.gd`가 여전히 통과하는지 확인한다. 통과 못 하면 **에셋이 확정 규칙을 어긴 것**이다
+5. 교체 전후로 적 160마리 화면을 캡처해 비교한다
 
 ---
 
@@ -208,22 +234,130 @@ AI 생성은 캐릭터성이 필요한 플레이어·보스에, 프로그램 생
 
 ---
 
-## 5. 이번 마일스톤에서 실제로 한 시각 작업 (에셋 없이)
+## 5. 생성 실행 기록 (2026-08-13)
 
-| 항목 | 내용 |
+### 5-1. 결과 요약
+
+8종 전부 확정 규칙을 통과했다. **6종은 codex `imagegen`, 2종은 코드로 그렸다.**
+
+| 에셋 | 출처 | 시도 | 배경 대비 | 목표 대비 비율 |
+|---|---|---:|---|---|
+| player | imagegen | 2 | 12.35:1 | 0.95배 |
+| enemy_boss | imagegen | 2 | 8.11:1 | 1.11배 |
+| enemy_tank | imagegen | 2 | 6.01:1 | 1.35배 |
+| enemy_basic | imagegen | 2 | 4.39:1 | 1.02배 |
+| enemy_fast | imagegen | 2 | 3.92:1 | 1.02배 |
+| projectile | imagegen | 2 | 3.49:1 | 1.00배 |
+| **xp_gem** | **코드 생성** | imagegen 3회 실패 후 전환 | 3.78:1 | 1.04배 |
+| **orbital** | **코드 생성** | imagegen 3회 실패 후 전환 | 3.92:1 | 1.01배 |
+
+밝기 순서(플레이어 > 보스 > 탱커 > 기본 > 빠른 > 젬 > 투사체)도 통과한다.
+
+작업자별 원문 기록은 `docs/asset_gen/` 아래에 있다:
+`manifest_a.md`(1차 A) / `manifest_b.md`(1차 B) / `manifest_a2.md`(2차 A) / `manifest_b2.md`(2차 B) / `manifest_c2.md`(빠른 적) / `manifest_r3.md`(3차).
+
+### 5-2. 1차 — 8종 중 6종 실패
+
+프롬프트는 3-2절 v1을 그대로 썼다. 결과물은 1254×1254에서 보면 전부 훌륭한 일러스트였고,
+**codex 작업자 둘 다 자체 판정으로 "통과"를 줬다.** 그런데 게임 표시 크기로 줄여서 재니 이렇게 나왔다.
+
+```
+enemy_basic  2.80:1  실패 (3:1 미달)        enemy_fast   4.54:1  통과
+enemy_boss   2.19:1  실패 (목표의 0.20배)   orbital      3.79:1  통과
+enemy_tank   1.73:1  실패 (목표의 0.23배)   player       5.94:1  실패 (목표의 0.42배)
+projectile   전부 투명 — 8px에서 소멸       xp_gem       2.21:1  실패
+밝기 순서 위반 2건: tank <= basic, basic <= fast
+```
+
+탱커는 1.73:1까지 떨어졌다. **이번 마일스톤에서 고친 "안 보이는 보스"(1.05:1)와 비슷한 수준**을,
+그 버그를 고치려고 만든 에셋이 다시 만들어낸 것이다.
+
+### 5-3. 실패 유형 3가지 — 전부 원본 크기로는 안 보인다
+
+| # | 유형 | 증상 | 걸린 에셋 |
+|---|---|---|---|
+| 1 | **어두운 디테일이 밝기를 먹는다** | 회색 기계 패널·검은 외곽선이 축소되면 평균을 검정 쪽으로 끌어내린다 | player, basic, tank, boss, gem |
+| 2 | **캔버스를 안 채운다** | 1254px 캔버스에 473px 오브젝트 → 불투명 픽셀 0.3% → 8px에서 소멸 | projectile, orbital |
+| 3 | **개별로는 통과하는데 서로의 순서를 깬다** | 빠른 적이 기본 적보다 밝아 위험도 순서가 역전 | fast, gem |
+
+**3번은 한 장씩 검수해서는 절대 못 잡는다.** 반드시 묶어서 재야 한다.
+
+### 5-4. 2차 — 프롬프트를 "일러스트"에서 "플랫 픽토그램"으로
+
+1차 실패의 공통 원인이 명확했으므로 프롬프트 성격 자체를 바꿨다. 추가한 제약:
+
+- **검정·진회색·어두운 외곽선 전면 금지.** 테두리를 쓸 거면 채움색보다 **밝은** 색만
+- **내부 디테일 전면 금지** — 패널선·볼트·통풍구·조명·눈·얼굴·이음매
+- **캔버스의 85% 이상을 채울 것** (2번 유형 대응)
+- "도로 표지판이나 UI 글리프 같은 플랫 픽토그램. 렌더링된 일러스트가 아님"
+- 실패 수치를 프롬프트에 그대로 적어 **왜 이 제약이 있는지** 설명
+
+효과가 컸다. 2차에서 player 12.35:1, tank 6.01:1, basic 4.39:1로 전부 통과했고 목표값과의 오차도 작았다.
+
+### 5-5. 3차 — 젬과 궤도구는 끝내 실패했다
+
+이 둘만 3회씩 시도했는데 전부 **속이 빈 도형**이 나왔다. 젬은 마름모 테두리 띠, 궤도구는 링이었다.
+"채워진 도형"을 매번 명시하고 "링 금지", "내부 원 금지"까지 적었는데도 hollow가 반복됐다.
+
+codex 작업자의 3차 기록:
+
+> 3차: 99% 점유 좌표와 투명/#268038 두 영역만 허용하는 단색 벡터 로고 지시로 강화.
+> 외곽 충전은 충족했지만 어두운 내부 형상과 질감이 남아 실패. 최대 3회에 도달하여 중단.
+
+같은 레시피로 나머지 6종은 통과했으므로 프롬프트 품질 문제로 보기 어렵다.
+**작고(10~14px) 어둡고(휘도 0.16~0.17) 완전 단색인 도형**이라는 조건 자체가 생성 모델에 불리한 것으로 판단했다.
+
+3회 도달 시 중단이라는 운영 규칙(4-1절)에 따라 멈추고 `tools/make_flat_sprites.py`로 그렸다.
+결과는 젬 3.78:1(목표의 1.04배), 궤도구 3.92:1(1.01배)로 **오차가 사실상 0**이다.
+색과 충전율이 코드에 정의돼 있으니 당연하다.
+
+### 5-6. 파일 크기 — 같은 그림에 50배 차이
+
+| 출처 | 장당 크기 |
 |---|---|
-| 보스 색 | `Color(0.1, 0.1, 0.12)` → `Color(0.95, 0.35, 0.95)`. 배경 대비 **1.05:1 → 약 6.5:1** |
-| 적 피격 번쩍 | `enemy.gd`가 피격 시 0.06초 흰색 |
-| 명중 이펙트 | `projectile.gd`/`orbital.gd`가 `EffectSpawner.spawn_hit()` 호출 (이전에는 호출처가 0건) |
-| 위험 상태 | HP 30% 이하에서 HP바 적색 + 화면 비네트 |
-| 바 색 구분 | HP바 녹색 / 경험치바 청색 (이전에는 둘 다 기본 테마라 구분 불가) |
+| imagegen (6종) | 509 ~ 807 KB |
+| 코드 생성 (2종) | **10 ~ 12 KB** |
+
+생성 모델은 플랫 도형을 요구해도 미세한 안티에일리어싱과 노이즈를 남기기 때문에 PNG 압축이 잘 안 된다.
+
+### 5-7. 검사 도구
+
+두 개를 만들어 남겼다. 다른 서비스에서 생성한 PNG도 같은 기준으로 검사할 수 있다.
+
+```bash
+python tools/check_sprite_luminance.py assets/sprites   # 규칙 위반 검사
+python tools/make_flat_sprites.py xp_gem orbital        # 코드로 정확히 그리기
+```
+
+`check_sprite_luminance.py`는 처음에 휘도만 쟀는데, 컨택트 시트로 실제 크기를 보다가
+**궤도구가 14px 슬롯 안에서 5px 점으로 그려지면서도 통과하는 것**을 발견해 면적 충전율 검사를 추가했다.
+휘도는 "보이는 픽셀의 색"만 재므로 작지만 밝은 스프라이트를 걸러내지 못한다.
+
+### 5-8. 결론 — 그래서 이 에셋을 쓸 것인가
+
+**아직 씬에 붙이지 않았다.** 판단 근거는 이렇다.
+
+지금 게임은 `Polygon2D`로 같은 도형을 그리고 있고, 확정 규칙이 "플랫·단색·정확한 기하 실루엣"이라
+**AI 생성물이 코드가 그리는 것과 사실상 같은 그림으로 수렴했다.** 화면에서 얻는 게 없다.
+
+반면 붙이는 비용은 실재한다 (3-3절 참고):
+
+- `Sprite2D`에는 `color`가 없어 `enemy_spawner.gd`·`boss_spawner.gd`의 변종 색 주입이 깨진다
+- `enemy.gd`의 피격 번쩍이 `modulate` 방식으로 바뀌어야 한다
+- `test_visual_hierarchy.gd`가 노드 `color` 대신 **텍스처 픽셀을 샘플링**하도록 바뀌어야 한다
+- 저장소에 3.9MB가 늘고 임포트 시간이 붙는다
+
+**에셋이 값을 하려면 도형이 표현할 수 없는 것을 담아야 한다** — 애니메이션, 방향성, 질감, 캐릭터성.
+지금 규칙은 그걸 요구하지 않는다. 그래서 파일은 검증된 상태로 저장소에 남겨두되, 실제 교체는
+"도형으로는 부족한 표현이 필요해지는 시점"으로 미룬다.
 
 ---
 
-## 6. 기존 보유 에셋
+## 6. 보유 에셋
 
 | 에셋 | 출처 | 라이선스 | 비고 |
 |---|---|---|---|
+| `assets/sprites/*.png` (8종) | codex `imagegen` 6종 + `tools/make_flat_sprites.py` 2종 | 프로젝트 자체 생성 | 2026-08-13. **검증 통과, 아직 씬에 미적용** |
 | `assets/vfx/impact_white_6x4.png` 외 | Brackeys VFX 번들 | CC0 | M9에서 도입. PC 보유분이라 다운로드 없음 (devlog 013) |
 
 사운드는 **아직 없다.** 보유 팩에 오디오가 포함되지 않아 M9에서 미실시했다.

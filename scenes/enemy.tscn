@@ -13,10 +13,13 @@ script = ExtResource("1_enemy")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_enemy")
 
-[node name="Sprite" type="ColorRect" parent="."]
-offset_left = -10.0
-offset_top = -10.0
-offset_right = 10.0
-offset_bottom = 10.0
-color = Color(0.9, 0.25, 0.25, 1)
-mouse_filter = 2
+[node name="Sprite" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(-10, -10, 10, -10, 10, 10, -10, 10)
+color = Color(0.9, 0.22, 0.22, 1)
+
+[node name="Outline" type="Line2D" parent="."]
+visible = false
+points = PackedVector2Array(-10, -10, 10, -10, 10, 10, -10, 10)
+width = 0.0
+default_color = Color(1, 1, 1, 1)
+closed = true

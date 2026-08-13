@@ -98,9 +98,21 @@ func _spawn_enemy(variant_id: StringName, health_multiplier: float, apply_varian
 		enemy.set("speed", float(enemy_type.get("speed", 60.0)))
 		enemy.set("contact_damage", float(enemy_type.get("contact_damage", 5.0)))
 		enemy.scale = Vector2.ONE * float(enemy_type.get("scale", 1.0))
-		var sprite: ColorRect = enemy.get_node_or_null("Sprite") as ColorRect
+		var sprite: Polygon2D = enemy.get_node_or_null("Sprite") as Polygon2D
 		if sprite != null:
-			sprite.color = Color(enemy_type.get("color", Color.WHITE))
+			var sprite_color: Color = Color(enemy_type.get("color", Color.WHITE))
+			var shape_id: StringName = StringName(enemy_type.get("shape", &"square"))
+			var shape_points: PackedVector2Array = WaveData.get_shape_points(shape_id, 10.0)
+			sprite.color = sprite_color
+			sprite.polygon = shape_points
+			var outline: Line2D = enemy.get_node_or_null("Outline") as Line2D
+			if outline != null:
+				var outline_width: float = float(enemy_type.get("outline_width", 0.0))
+				outline.points = shape_points
+				outline.closed = true
+				outline.width = outline_width
+				outline.default_color = sprite_color.lightened(0.45)
+				outline.visible = outline_width > 0.0
 
 	var design_screen_size: Vector2 = Vector2(
 		float(ProjectSettings.get_setting("display/window/size/viewport_width")),
@@ -190,4 +202,3 @@ func set_elapsed_time_for_testing(elapsed_seconds: float) -> void:
 # Test seam: executes the normal tick synchronously, outside the physics-timer signal.
 func trigger_spawn_tick_for_testing() -> void:
 	_run_spawn_tick()
-

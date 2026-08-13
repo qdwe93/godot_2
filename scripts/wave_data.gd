@@ -91,22 +91,28 @@ const ENEMY_TYPES: Dictionary = {
 		"health": 10.0,
 		"speed": 60.0,
 		"contact_damage": 5.0,
-		"color": Color(0.9, 0.25, 0.25),
+		"color": Color(0.9, 0.22, 0.22),
 		"scale": 1.0,
+		"shape": &"square",
+		"outline_width": 0.0,
 	},
 	&"fast": {
 		"health": 6.0,
 		"speed": 115.0,
 		"contact_damage": 4.0,
-		"color": Color(1.0, 0.6, 0.15),
+		"color": Color(0.75, 0.32, 0.06),
 		"scale": 0.85,
+		"shape": &"triangle",
+		"outline_width": 0.0,
 	},
 	&"tank": {
 		"health": 40.0,
 		"speed": 40.0,
 		"contact_damage": 12.0,
-		"color": Color(0.6, 0.25, 0.8),
+		"color": Color(0.72, 0.3, 0.95),
 		"scale": 1.4,
+		"shape": &"hexagon",
+		"outline_width": 3.0,
 	},
 }
 
@@ -136,3 +142,36 @@ static func get_phase_count() -> int:
 static func get_enemy_type(variant_id: StringName) -> Dictionary:
 	var enemy_type: Dictionary = ENEMY_TYPES.get(variant_id, ENEMY_TYPES[&"basic"])
 	return enemy_type.duplicate(true)
+
+
+static func get_shape_points(shape_id: StringName, radius: float) -> PackedVector2Array:
+	match shape_id:
+		&"square":
+			return PackedVector2Array([
+				Vector2(-radius, -radius),
+				Vector2(radius, -radius),
+				Vector2(radius, radius),
+				Vector2(-radius, radius),
+			])
+		&"triangle":
+			var half_width: float = radius * sqrt(3.0) * 0.5
+			return PackedVector2Array([
+				Vector2(0.0, -radius),
+				Vector2(half_width, radius * 0.5),
+				Vector2(-half_width, radius * 0.5),
+			])
+		&"hexagon":
+			var points: PackedVector2Array = PackedVector2Array()
+			for index in range(6):
+				var angle: float = -PI * 0.5 + TAU * float(index) / 6.0
+				points.append(Vector2(cos(angle), sin(angle)) * radius)
+			return points
+		&"octagon":
+			var octagon_points: PackedVector2Array = PackedVector2Array()
+			for octagon_index in range(8):
+				var octagon_angle: float = -PI * 0.5 + TAU * float(octagon_index) / 8.0
+				octagon_points.append(Vector2(cos(octagon_angle), sin(octagon_angle)) * radius)
+			return octagon_points
+		_:
+			push_error("WaveData: unknown enemy shape id '%s'; using square." % shape_id)
+			return get_shape_points(&"square", radius)

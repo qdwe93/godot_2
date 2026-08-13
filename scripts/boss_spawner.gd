@@ -11,7 +11,7 @@ extends Node
 @export var boss_speed: float = 50.0
 @export var boss_contact_damage: float = 25.0
 @export var boss_scale: float = 3.0
-@export var boss_color: Color = Color(0.95, 0.35, 0.95)
+@export var boss_color: Color = Color(0.95, 0.45, 0.95)
 
 var _enemy_container: Node
 var _target: Node2D
@@ -77,9 +77,17 @@ func spawn_boss_now() -> Node:
 	boss.set("target", _target)
 	boss.scale = Vector2.ONE * boss_scale
 	var sprite_node: Node = boss.get_node_or_null("Sprite")
-	if sprite_node is ColorRect:
-		var sprite: ColorRect = sprite_node
+	if sprite_node is Polygon2D:
+		var sprite: Polygon2D = sprite_node
 		sprite.color = boss_color
+		sprite.polygon = WaveData.get_shape_points(&"octagon", 10.0)
+	var outline: Line2D = boss.get_node_or_null("Outline") as Line2D
+	if outline != null:
+		outline.points = WaveData.get_shape_points(&"octagon", 10.0)
+		outline.closed = true
+		outline.width = 3.0
+		outline.default_color = boss_color.lightened(0.5)
+		outline.visible = true
 	boss.add_to_group(&"enemies")
 
 	_enemy_container.add_child(boss)

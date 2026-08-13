@@ -188,12 +188,17 @@ func _make_boss_spawner(spawn_delay: float, container: Node2D, target: Node2D) -
 func _make_enemy_scene() -> PackedScene:
 	var prototype: CharacterBody2D = CharacterBody2D.new()
 	prototype.set_script(ENEMY_SCRIPT)
-	var sprite: ColorRect = ColorRect.new()
+	var sprite: Polygon2D = Polygon2D.new()
 	sprite.name = "Sprite"
-	sprite.size = Vector2(16.0, 16.0)
-	sprite.position = Vector2(-8.0, -8.0)
+	sprite.polygon = WaveData.get_shape_points(&"square", 8.0)
 	prototype.add_child(sprite)
 	sprite.owner = prototype
+	var outline: Line2D = Line2D.new()
+	outline.name = "Outline"
+	outline.points = WaveData.get_shape_points(&"square", 8.0)
+	outline.closed = true
+	prototype.add_child(outline)
+	outline.owner = prototype
 	var scene: PackedScene = PackedScene.new()
 	var pack_result: Error = scene.pack(prototype)
 	if pack_result != OK:

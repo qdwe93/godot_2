@@ -98,7 +98,7 @@ func take_damage(amount: float) -> void:
 
 
 func _start_hit_flash() -> void:
-	var sprite: ColorRect = get_node_or_null("Sprite") as ColorRect
+	var sprite: Polygon2D = get_node_or_null("Sprite") as Polygon2D
 	if sprite == null:
 		return
 	if not _has_base_sprite_color:
@@ -114,7 +114,7 @@ func _update_hit_flash(delta: float) -> void:
 	_hit_flash_remaining = maxf(_hit_flash_remaining - delta, 0.0)
 	if _hit_flash_remaining > 0.0:
 		return
-	var sprite: ColorRect = get_node_or_null("Sprite") as ColorRect
+	var sprite: Polygon2D = get_node_or_null("Sprite") as Polygon2D
 	if sprite != null and _has_base_sprite_color:
 		sprite.color = _base_sprite_color
 
@@ -126,7 +126,7 @@ func is_hit_flashing() -> bool:
 func get_base_sprite_color() -> Color:
 	if _has_base_sprite_color:
 		return _base_sprite_color
-	var sprite: ColorRect = get_node_or_null("Sprite") as ColorRect
+	var sprite: Polygon2D = get_node_or_null("Sprite") as Polygon2D
 	if sprite != null:
 		return sprite.color
 	return Color.WHITE

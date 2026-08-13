@@ -36,10 +36,15 @@ func _run_tests() -> void:
 func _make_enemy_scene() -> PackedScene:
 	var enemy: CharacterBody2D = CharacterBody2D.new()
 	enemy.set_script(ENEMY_SCRIPT)
-	var sprite: ColorRect = ColorRect.new()
+	var sprite: Polygon2D = Polygon2D.new()
 	sprite.name = "Sprite"
 	enemy.add_child(sprite)
 	sprite.owner = enemy
+	var outline: Line2D = Line2D.new()
+	outline.name = "Outline"
+	outline.closed = true
+	enemy.add_child(outline)
+	outline.owner = enemy
 	var packed_scene: PackedScene = PackedScene.new()
 	if packed_scene.pack(enemy) != OK:
 		return null

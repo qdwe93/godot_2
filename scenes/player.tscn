@@ -31,13 +31,9 @@ collision_mask = 2
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
 shape = SubResource("CircleShape2D_hurtbox")
 
-[node name="Sprite" type="ColorRect" parent="."]
-offset_left = -12.0
-offset_top = -12.0
-offset_right = 12.0
-offset_bottom = 12.0
-color = Color(0.3, 0.7, 1, 1)
-mouse_filter = 2
+[node name="Sprite" type="Polygon2D" parent="."]
+color = Color(0.55, 0.9, 1, 1)
+polygon = PackedVector2Array(0.0000, -12.0000, 4.5922, -11.0866, 8.4853, -8.4853, 11.0866, -4.5922, 12.0000, 0.0000, 11.0866, 4.5922, 8.4853, 8.4853, 4.5922, 11.0866, 0.0000, 12.0000, -4.5922, 11.0866, -8.4853, 8.4853, -11.0866, 4.5922, -12.0000, 0.0000, -11.0866, -4.5922, -8.4853, -8.4853, -4.5922, -11.0866)
 
 [node name="Weapon" type="Node2D" parent="."]
 script = ExtResource("2_weapon")

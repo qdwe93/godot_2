@@ -83,7 +83,7 @@ func _case_enemy_flashes_on_hit() -> void:
 	var enemy: CharacterBody2D = ENEMY_SCENE.instantiate() as CharacterBody2D
 	enemy.process_mode = DISABLED_PROCESS_MODE
 	add_child(enemy)
-	var sprite: ColorRect = enemy.get_node_or_null("Sprite") as ColorRect
+	var sprite: Polygon2D = enemy.get_node_or_null("Sprite") as Polygon2D
 	var base_colour: Color = sprite.color if sprite != null else Color.WHITE
 	enemy.call(&"take_damage", 1.0)
 	var current_colour: Color = sprite.color if sprite != null else base_colour
@@ -96,7 +96,7 @@ func _case_enemy_flash_restores_colour() -> void:
 	var enemy: CharacterBody2D = ENEMY_SCENE.instantiate() as CharacterBody2D
 	enemy.process_mode = DISABLED_PROCESS_MODE
 	add_child(enemy)
-	var sprite: ColorRect = enemy.get_node_or_null("Sprite") as ColorRect
+	var sprite: Polygon2D = enemy.get_node_or_null("Sprite") as Polygon2D
 	enemy.call(&"take_damage", 1.0)
 	enemy.call(&"_physics_process", 0.07)
 	var restored_colour: Color = sprite.color if sprite != null else Color.WHITE

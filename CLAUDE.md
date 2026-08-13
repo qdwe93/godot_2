@@ -155,7 +155,7 @@ Godot 4.7에서는 `Variant` 값으로부터 `:=` 타입을 추론하는 선언�
 ## 전체 테스트 스위트 (한 번에 돌리기)
 
 ```powershell
-foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_player_damage","test_experience","test_level_up_ui","test_upgrades","test_upgrade_limits","test_new_weapons","test_waves","test_boss_and_separation","test_hud","test_game_flow","test_effects","test_scene_wiring","test_feedback")) { $r = & "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" --quit-after 3600 "res://tests/$t.tscn" 2>&1 | Select-String -Pattern "TEST_RESULT|TEST_ERROR"; "$t => $r (exit=$LASTEXITCODE)" }
+foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_player_damage","test_experience","test_level_up_ui","test_upgrades","test_upgrade_limits","test_new_weapons","test_waves","test_boss_and_separation","test_hud","test_game_flow","test_effects","test_scene_wiring","test_feedback","test_visual_hierarchy")) { $r = & "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" --quit-after 3600 "res://tests/$t.tscn" 2>&1 | Select-String -Pattern "TEST_RESULT|TEST_ERROR"; "$t => $r (exit=$LASTEXITCODE)" }
 ```
 
 | 스위트 | 케이스 | 검증 내용 |
@@ -176,6 +176,7 @@ foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_p
 | `test_effects` | 6 | 이펙트 자동 해제, 프레임 진행, 컨테이너 배치, 크기 비례, 흔들림 복원 2건 |
 | `test_scene_wiring` | 6 | **배선 스모크** — 전 업그레이드 노출, 그룹 실재, 교차 메서드 실재, 플레이어 자식 노드, 시그널, 보스 드랍 연결 |
 | `test_feedback` | 5 | 명중 이펙트 생성, 피격 번쩍, 번쩍 복원, 위험 상태 진입·해제 |
+| `test_visual_hierarchy` | 4 | **시각 규칙** — 밝기 순서, 전 요소 3:1 대비, 플레이어 최상위, 적 형태 구분 |
 
 > ⚠️ `test_enemy_spawn`은 **간헐적으로 1케이스가 실패**한다 (12회 중 1회 관측, 재현 8회 실패). 스폰 개수·추적 거리가 타이머 위상에 민감한 것으로 추정. 한 번 실패하면 재실행해 보고, 반복되면 허용 오차를 넓힐 것.
 
@@ -188,6 +189,18 @@ foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_p
 
 이 프로젝트에서 "정의는 있는데 게임에서 실행되지 않는" 버그가 3건 나왔다 (산탄·궤도구 미노출, `spawn_hit()` 호출처 0건, 보스 드랍 메서드 이름 불일치).
 전부 유닛 테스트를 통과했다. **그룹 이름·문자열 메서드·선택지 노출을 바꿨으면 `test_scene_wiring`을 돌린다.**
+
+### 스프라이트를 바꿨으면 축소해서 재라
+
+원본 크기로 보면 절대 못 잡는다. AI 생성물 8장 중 6장이 이 검사에서 걸렸다.
+
+```bash
+python tools/check_sprite_luminance.py assets/sprites
+```
+
+휘도(어두운 디테일)·충전율(슬롯 대비 크기)·밝기 순서 세 가지를 본다.
+`.tscn`의 `Polygon2D`를 `Sprite2D`로 바꾸면 `enemy_spawner.gd`·`boss_spawner.gd`·`enemy.gd`의
+`color` 주입이 **에러 없이 조용히 죽는다** (`Sprite2D`에는 `color`가 없다).
 
 ## 빌드 (Windows / 웹 / Android)
 
