@@ -1,4 +1,4 @@
-[gd_scene load_steps=17 format=3 uid="uid://dktangm0setup"]
+[gd_scene load_steps=19 format=3 uid="uid://dktangm0setup"]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="2_player"]
@@ -17,6 +17,8 @@
 [ext_resource type="Script" path="res://scripts/effect_spawner.gd" id="14_effect_spawner"]
 [ext_resource type="Script" path="res://scripts/screen_shake.gd" id="15_screen_shake"]
 [ext_resource type="PackedScene" path="res://scenes/touch_joystick.tscn" id="16_touch_joystick"]
+[ext_resource type="Script" path="res://scripts/background_grid.gd" id="17_background_grid"]
+[ext_resource type="Texture2D" path="res://assets/sprites/ground_tile.png" id="18_ground_tile"]
 
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
@@ -39,6 +41,19 @@ anchor_bottom = 1.0
 color = Color(0.08, 0.08, 0.1, 1)
 mouse_filter = 2
 
+[node name="Ground" type="Sprite2D" parent="."]
+; 흐르는 바닥 격자. 카메라가 들어온 뒤로 **움직이고 있다는 것을 보여주는 유일한
+; 단서**다. 단색 배경만 있으면 주인공이 화면 중앙에 고정된 채 아무것도 흐르지 않아
+; 서 있는 것과 달리는 것이 구분되지 않는다.
+;
+; ColorRect 배경(BackgroundLayer, layer=-1)보다는 위, 나머지 전부보다는 아래에
+; 그린다 (z_index = -100, 스크립트에서 설정).
+script = ExtResource("17_background_grid")
+texture = ExtResource("18_ground_tile")
+texture_repeat = 2
+region_enabled = true
+region_rect = Rect2(-4096, -4096, 8192, 8192)
+
 [node name="EnemyContainer" type="Node2D" parent="."]
 
 [node name="ProjectileContainer" type="Node2D" parent="." groups=["projectile_container"]]
@@ -59,25 +74,6 @@ pickup_spawner_path = NodePath("../PickupSpawner")
 enemy_scene = ExtResource("4_enemy")
 enemy_container_path = NodePath("../EnemyContainer")
 target_path = NodePath("../Player")
-
-[node name="TitleLabel" type="Label" parent="."]
-offset_left = 535.0
-offset_top = 20.0
-offset_right = 745.0
-offset_bottom = 50.0
-text = ""
-horizontal_alignment = 1
-vertical_alignment = 1
-
-[node name="GameOverLabel" type="Label" parent="."]
-visible = false
-offset_left = 540.0
-offset_top = 335.0
-offset_right = 740.0
-offset_bottom = 385.0
-text = "게임 오버"
-horizontal_alignment = 1
-vertical_alignment = 1
 
 [node name="CaptureHelper" type="Node" parent="."]
 script = ExtResource("3_capture")
@@ -104,8 +100,11 @@ effect_container_path = NodePath("../EffectContainer")
 enemy_container_path = NodePath("../EnemyContainer")
 
 [node name="ScreenShake" type="Node" parent="."]
+; 흔드는 대상은 **카메라**다. Main 을 흔들면 카메라도 그 자식으로 함께 움직여
+; 화면에는 아무 변화도 나타나지 않는다 (M16 이전에는 카메라가 없어 Main 을 흔드는
+; 것이 곧 화면을 흔드는 것이었다).
 script = ExtResource("15_screen_shake")
-target_path = NodePath("..")
+target_path = NodePath("../Player/Camera2D")
 
 [node name="GameFlow" parent="." instance=ExtResource("12_game_flow")]
 player_path = NodePath("../Player")

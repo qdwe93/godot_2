@@ -13,6 +13,10 @@ var pickup_spawner: Node = null
 @export var target_path: NodePath
 @export var use_wave_data: bool = true
 
+## 스폰 반지름의 몇 배까지 벗어나면 적을 회수하는가.
+## 1.0 이면 화면 가장자리에서 바로 사라져 눈에 띈다. 넉넉히 잡는다.
+const DESPAWN_RADIUS_FACTOR: float = 1.8
+
 var _enemy_container: Node2D = null
 var _target: Node2D = null
 var _spawn_timer: Timer = null
@@ -100,12 +104,18 @@ func _spawn_enemy(variant_id: StringName, health_multiplier: float, apply_varian
 		enemy.scale = Vector2.ONE * float(enemy_type.get("scale", 1.0))
 		_apply_variant_texture(enemy, enemy_type)
 
-	var screen_center: Vector2 = Arena.get_center(self)
+	# 화면 중앙의 **월드 좌표** 기준. 카메라가 주인공을 따라다니므로 get_center()
+	# 를 쓰면 주인공이 멀리 가도 적은 계속 월드 원점 근처에서만 태어난다.
+	var screen_center: Vector2 = Arena.get_view_center(self)
 	var spawn_radius: float = Arena.get_spawn_radius(self, spawn_margin)
 	var angle: float = randf() * TAU
 	var spawn_offset: Vector2 = Vector2(cos(angle), sin(angle)) * spawn_radius
 
 	enemy.set("target", _target)
+	# 세계가 무한해지면서 "뒤에 남겨진 적"이 생긴다. 주인공(200)이 적(40~115)보다
+	# 빠르므로 한 방향으로 달리면 뒤쪽 적은 영원히 못 따라온다. 그대로 두면
+	# max_enemies 를 시체처럼 차지해 앞쪽 밀도가 오히려 낮아진다.
+	enemy.set("despawn_distance", spawn_radius * DESPAWN_RADIUS_FACTOR)
 	if pickup_spawner != null and enemy.has_signal("died"):
 		var died_signal: Signal = enemy.get("died")
 		var gem_value: float = 1.0

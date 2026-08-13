@@ -7,7 +7,6 @@ const SCREEN_CENTER := Vector2(640.0, 360.0)
 const MOVEMENT_FRAMES := 30
 const MOVEMENT_TOLERANCE := 0.05
 const Y_TOLERANCE := 1.0
-const CLAMP_FRAMES := 3
 const MEASUREMENT_EPSILON := 0.001
 
 var passed_count := 0
@@ -27,7 +26,7 @@ func _ready() -> void:
 
 	var case_1_distance: float = await _test_horizontal_movement(player)
 	await _test_diagonal_speed(player, case_1_distance)
-	await _test_screen_bounds_clamp(player)
+	await _test_movement_is_unbounded(player)
 
 	_finish_suite()
 
@@ -134,59 +133,42 @@ func _test_diagonal_speed(player: CharacterBody2D, case_1_distance: float) -> vo
 	_release_movement_actions()
 
 
-func _test_screen_bounds_clamp(player: CharacterBody2D) -> void:
+## M16에서 화면 가두기(`_clamp_to_screen`)를 없앴다.
+##
+## 카메라가 주인공을 따라다니면 뷰포트 사각형도 주인공과 함께 움직인다. 그 안에
+## 가둔다는 것은 자기 자신을 가두는 꼴이라 아무 의미가 없다. 그래서 여기서 고정할
+## 것은 예전 케이스의 정반대다 — 화면 끝에 닿아도 **계속 나아가는가.**
+##
+## 가두기가 되살아나면 이 케이스가 즉시 잡는다.
+func _test_movement_is_unbounded(player: CharacterBody2D) -> void:
 	_release_movement_actions()
-	player.global_position = SCREEN_CENTER
-	# 기준 해상도가 아니라 **구현과 같은 출처**(Arena)를 쓴다.
-	#
-	# 화면비가 다른 기기에서는 뷰포트가 넓어지고(stretch aspect=expand), 헤드리스는
-	# 높이를 틀리게 보고한다(1280x720인데 1280x1280). 어느 쪽이든 "플레이어가
-	# 플레이 영역 안에 갇히는가"라는 **관계**는 그대로 성립한다.
-	# 값을 하드코딩하면 이 테스트는 실행 환경마다 다른 답을 낸다.
-	var project_viewport_size := Arena.get_size(player)
-	var runtime_viewport_size := get_viewport_rect().size
-	var body_radius: float = float(player.get("body_radius"))
-	var minimum_position := Vector2(body_radius, body_radius)
-	var maximum_position := project_viewport_size - minimum_position
+	# 구현과 같은 출처를 쓴다. 헤드리스는 뷰포트 높이를 틀리게 보고하지만
+	# "경계를 넘어가는가"라는 관계는 어느 환경에서나 그대로 성립한다.
+	var arena_size := Arena.get_size(player)
+	var start_position := Vector2(arena_size.x - 20.0, arena_size.y * 0.5)
+	player.global_position = start_position
+	var speed: float = float(player.get("speed"))
+	var expected_x := speed * MOVEMENT_FRAMES / float(Engine.physics_ticks_per_second)
 
-	player.global_position = Vector2(5000.0, 5000.0)
-	await _advance_physics(CLAMP_FRAMES)
-	var positive_corner_position := player.global_position
-	var positive_corner_inside := _is_inside_bounds(
-		positive_corner_position, minimum_position, maximum_position
+	Input.action_press("move_right")
+	await _advance_physics(MOVEMENT_FRAMES)
+	Input.action_release("move_right")
+
+	var travelled := player.global_position.x - start_position.x
+	var passed := (
+		player.global_position.x > arena_size.x
+		and travelled >= expected_x * 0.8
 	)
-
-	player.global_position = Vector2(-5000.0, -5000.0)
-	await _advance_physics(CLAMP_FRAMES)
-	var negative_corner_position := player.global_position
-	var negative_corner_inside := _is_inside_bounds(
-		negative_corner_position, minimum_position, maximum_position
-	)
-
-	var passed := positive_corner_inside and negative_corner_inside
 	_record_case(
-		"screen_bounds_clamp",
+		"movement_is_unbounded",
 		passed,
-		(
-			"positive=(%.3f,%.3f) negative=(%.3f,%.3f) "
-			+ "project_settings=(%.3f,%.3f) "
-			+ "project_bounds=(%.3f,%.3f)-(%.3f,%.3f) "
-			+ "runtime_viewport=(%.3f,%.3f) radius=%.3f"
-		)
+		"start_x=%.3f end_x=%.3f arena_width=%.3f travelled=%.3f expected=%.3f"
 		% [
-			positive_corner_position.x,
-			positive_corner_position.y,
-			negative_corner_position.x,
-			negative_corner_position.y,
-			project_viewport_size.x,
-			project_viewport_size.y,
-			minimum_position.x,
-			minimum_position.y,
-			maximum_position.x,
-			maximum_position.y,
-			runtime_viewport_size.x,
-			runtime_viewport_size.y,
-			body_radius,
+			start_position.x,
+			player.global_position.x,
+			arena_size.x,
+			travelled,
+			expected_x,
 		]
 	)
 	_release_movement_actions()
@@ -195,15 +177,6 @@ func _test_screen_bounds_clamp(player: CharacterBody2D) -> void:
 func _advance_physics(frame_count: int) -> void:
 	for _frame in range(frame_count):
 		await get_tree().physics_frame
-
-
-func _is_inside_bounds(position: Vector2, minimum: Vector2, maximum: Vector2) -> bool:
-	return (
-		position.x >= minimum.x
-		and position.x <= maximum.x
-		and position.y >= minimum.y
-		and position.y <= maximum.y
-	)
 
 
 func _release_movement_actions() -> void:

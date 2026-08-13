@@ -40,17 +40,20 @@ except ImportError:  # pragma: no cover
     sys.exit("Pillow가 필요하다:  pip install Pillow")
 
 
-BACKGROUND = (0.08, 0.08, 0.10)  # main.tscn 의 Background ColorRect
+# 대비 계산의 기준은 **가장 밝은 배경 톤**이다. 즉 최악의 경우를 잰다.
+# M16에서 흐르는 바닥 격자가 들어오면서 그 톤이 ColorRect(#14141A)가 아니라
+# 격자선(#1E1E26)이 됐다. scripts/background_grid.gd 의 GRID_TINT 와 같은 값이다.
+BACKGROUND = (0.118, 0.118, 0.149)
 MIN_CONTRAST = 3.0  # 비텍스트 요소의 WCAG 최소 권장
 
 # 이름 -> (게임 내 표시 크기 px, 목표 색, 밝기 순위)
 # 순위 1이 가장 밝다. docs/ASSETS.md 3-0절 표와 같은 값이다.
 SPEC: dict[str, tuple[int, tuple[float, float, float], int]] = {
-    "player": (24, (0.55, 0.90, 1.00), 1),
-    "enemy_boss": (60, (0.95, 0.45, 0.95), 2),
-    "enemy_tank": (28, (0.72, 0.30, 0.95), 3),
-    "enemy_basic": (20, (0.90, 0.22, 0.22), 4),
-    "enemy_fast": (17, (0.75, 0.32, 0.06), 5),
+    "player": (72, (0.55, 0.90, 1.00), 1),
+    "enemy_boss": (180, (0.95, 0.45, 0.95), 2),
+    "enemy_tank": (84, (0.72, 0.30, 0.95), 3),
+    "enemy_basic": (60, (0.90, 0.22, 0.22), 4),
+    "enemy_fast": (51, (0.75, 0.32, 0.06), 5),
     "xp_gem": (10, (0.15, 0.50, 0.22), 6),
     "projectile": (8, (0.62, 0.36, 0.10), 7),
     "orbital": (14, (0.28, 0.48, 0.55), 0),  # 장비. 순위 검사에서는 제외

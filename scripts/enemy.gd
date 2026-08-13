@@ -7,16 +7,25 @@ signal died(enemy_position: Vector2)
 @export var speed: float = 60.0
 @export var max_health: float = 10.0
 @export var contact_damage: float = 5.0
-@export var separation_radius: float = 26.0
+## 몸 지름(60)보다 조금 큰 값. M16에서 캐릭터가 3배가 되면서 26 으로는 적들이
+## 서로 파고들어 한 덩어리로 보였다.
+@export var separation_radius: float = 78.0
 @export var separation_weight: float = 0.6
 @export var separation_update_interval: int = 4
 @export var separation_max_neighbours: int = 12
+## 목표에서 이만큼 멀어지면 스스로 사라진다. 0 이면 회수하지 않는다 (보스).
+##
+## 카메라가 들어오면서 세계가 무한해졌다. 주인공이 한 방향으로 달리면 뒤쪽 적은
+## 영원히 못 따라오는데, 그대로 두면 적 수 상한만 차지하는 유령이 된다.
+## **`died` 를 쏘지 않는다** — 젬도 처치 수도 주지 않는 조용한 회수다.
+@export var despawn_distance: float = 0.0
 
 var target: Node2D = null
 var health: float
 var variant_id: StringName = &"basic"
 
 var _dead := false
+var _despawn_check_phase: int = -1
 var _separation_vector: Vector2 = Vector2.ZERO
 var _hit_flash_remaining: float = 0.0
 var _base_sprite_color: Color = Color.WHITE
@@ -35,6 +44,10 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector2.ZERO
 		return
 
+	if _should_despawn():
+		queue_free()
+		return
+
 	var direction: Vector2 = (target.global_position - global_position).normalized()
 	if separation_weight != 0.0:
 		_update_separation_if_needed()
@@ -43,6 +56,18 @@ func _physics_process(delta: float) -> void:
 			direction = combined_direction.normalized()
 	velocity = direction * speed
 	move_and_slide()
+
+
+## 너무 뒤처졌는가. 매 프레임 잴 필요는 없어 30프레임에 한 번, 인스턴스마다
+## 위상을 흩어 한 프레임에 몰리지 않게 한다.
+func _should_despawn() -> bool:
+	if despawn_distance <= 0.0:
+		return false
+	if _despawn_check_phase < 0:
+		_despawn_check_phase = int(get_instance_id() % 30)
+	if Engine.get_physics_frames() % 30 != _despawn_check_phase:
+		return false
+	return global_position.distance_to(target.global_position) > despawn_distance
 
 
 func _update_separation_if_needed() -> void:

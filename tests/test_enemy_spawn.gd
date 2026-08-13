@@ -123,8 +123,13 @@ func _test_periodic_spawning() -> void:
 func _test_spawn_position_offscreen() -> void:
 	var setup := _create_setup(3600.0, OFFSCREEN_SPAWN_COUNT)
 	var spawner: Node = setup["spawner"] as Node
-	var design_screen_size := _design_screen_size()
-	var screen_center := design_screen_size / 2.0
+	# M16 이후 "화면"은 월드 원점에 붙어 있지 않다. 카메라가 주인공을 따라다니므로
+	# 화면 사각형이 주인공과 함께 움직인다. 그래서 기준 해상도 사각형이 아니라
+	# **지금 보이는 화면의 중심과 반지름**으로 판정한다.
+	var design_screen_size := Arena.get_size(spawner)
+	var screen_center := Arena.get_view_center(spawner)
+	# 화면 대각선의 절반보다 멀면 화면비와 무관하게 반드시 화면 밖이다.
+	var offscreen_radius := design_screen_size.length() * 0.5
 	var inside_count := 0
 	var minimum_center_distance := INF
 
@@ -134,12 +139,10 @@ func _test_spawn_position_offscreen() -> void:
 			inside_count += 1
 			continue
 		var spawn_position := enemy.global_position
-		if _is_inside_design_screen(spawn_position, design_screen_size):
+		var center_distance := spawn_position.distance_to(screen_center)
+		if center_distance <= offscreen_radius:
 			inside_count += 1
-		minimum_center_distance = minf(
-			minimum_center_distance,
-			spawn_position.distance_to(screen_center)
-		)
+		minimum_center_distance = minf(minimum_center_distance, center_distance)
 
 	_record_case(
 		"spawn_position_offscreen",

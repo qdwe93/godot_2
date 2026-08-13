@@ -8,39 +8,60 @@ process_mode = 3
 visible = false
 
 [node name="Dimmer" type="ColorRect" parent="."]
-offset_right = 1280.0
-offset_bottom = 720.0
-color = Color(0, 0, 0, 0.6)
+; 앵커로 뷰포트 전체를 덮는다. 예전에는 offset 으로 1280x720 을 고정하고 있어서
+; 갤럭시 S21(뷰포트 1600x720)에서 **오른쪽 320 단위가 안 덮였다.** 게임이 그 띠로
+; 그대로 비쳐 보였다.
+;
+; 앵커가 먹으려면 layout_mode = 1 이 필요하다. anchors_preset 은 에디터용 힌트라
+; 그것만 적으면 런타임에는 아무 일도 일어나지 않는다.
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.72)
 mouse_filter = 0
 
 [node name="Title" type="Label" parent="."]
-offset_left = 440.0
-offset_top = 150.0
-offset_right = 840.0
-offset_bottom = 210.0
-theme_override_font_sizes/font_size = 36
+; 가로 전체를 차지하게 두고 horizontal_alignment 로 가운데 정렬한다.
+; 이러면 뷰포트 폭이 얼마든 항상 화면 한가운데에 온다.
+layout_mode = 1
+anchor_right = 1.0
+offset_top = 64.0
+offset_bottom = 148.0
+theme_override_font_sizes/font_size = 52
 text = "레벨 업!"
 horizontal_alignment = 1
 vertical_alignment = 1
 
 [node name="Choices" type="VBoxContainer" parent="."]
-offset_left = 440.0
-offset_top = 270.0
-offset_right = 840.0
-offset_bottom = 450.0
-theme_override_constants/separation = 16
+; 화면 중앙 기준으로 폭 700, 높이 402(=3*118 + 2*24)를 잡는다.
+layout_mode = 1
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -350.0
+offset_top = -170.0
+offset_right = 350.0
+offset_bottom = 232.0
+theme_override_constants/separation = 24
 
 [node name="Choice0" type="Button" parent="Choices"]
-custom_minimum_size = Vector2(400, 48)
+; 터치 표적 크기. 118 단위는 S21 실기에서 약 177px(약 16mm)로, 엄지로 눌러도
+; 빗나가지 않는 크기다. 예전 48 단위는 약 7mm 라 너무 작았다.
+custom_minimum_size = Vector2(700, 118)
 layout_mode = 2
+theme_override_font_sizes/font_size = 30
 
 [node name="Choice1" type="Button" parent="Choices"]
-custom_minimum_size = Vector2(400, 48)
+custom_minimum_size = Vector2(700, 118)
 layout_mode = 2
+theme_override_font_sizes/font_size = 30
 
 [node name="Choice2" type="Button" parent="Choices"]
-custom_minimum_size = Vector2(400, 48)
+custom_minimum_size = Vector2(700, 118)
 layout_mode = 2
+theme_override_font_sizes/font_size = 30
 
 [connection signal="pressed" from="Choices/Choice0" to="." method="_on_choice_0_pressed"]
 [connection signal="pressed" from="Choices/Choice1" to="." method="_on_choice_1_pressed"]

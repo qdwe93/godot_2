@@ -10,7 +10,7 @@ signal health_changed(current: float, maximum: float)
 signal died()
 
 @export var speed: float = 200.0
-@export var body_radius: float = 12.0
+@export var body_radius: float = 36.0
 @export var max_health: float = 100.0
 @export var invincibility_time: float = 0.5
 ## 초당 체력 회복량.
@@ -68,7 +68,6 @@ func _physics_process(delta: float) -> void:
 	var input_vector: Vector2 = Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	velocity = input_vector * speed
 	move_and_slide()
-	_clamp_to_screen()
 	_poll_contact_damage()
 
 
@@ -145,14 +144,15 @@ func _update_invincibility(delta: float) -> void:
 	is_invincible = _invincibility_remaining > 0.0
 
 
-func _clamp_to_screen() -> void:
-	# 기준 해상도(1280x720)가 아니라 **실제 뷰포트**를 쓴다. stretch aspect=expand라
-	# 화면비가 다른 기기에서는 플레이 영역이 더 넓다 (Arena 참고).
-	var arena_size: Vector2 = Arena.get_size(self)
-	global_position = Vector2(
-		clampf(global_position.x, body_radius, arena_size.x - body_radius),
-		clampf(global_position.y, body_radius, arena_size.y - body_radius)
-	)
+## M16에서 `_clamp_to_screen()` 을 없앴다.
+##
+## 그전까지 주인공은 뷰포트 사각형 안에 갇혀 있었다. 카메라가 들어와 주인공이
+## 화면 한가운데에 고정되면 그 사각형은 **주인공과 함께 움직이므로** 가두는 것이
+## 의미를 잃는다 (자기 자신을 가두게 된다). 세계는 이제 경계가 없고, 대신
+## 적이 화면 바깥 원주에서 계속 태어나므로 도망쳐도 앞에서 새로 만난다.
+##
+## 없앤 결과로 바뀌는 것: 구석에 몰리는 상황이 사라진다. 밸런스에 영향이 있으므로
+## M16 이후 수치는 반드시 재측정한다.
 
 
 func _poll_contact_damage() -> void:

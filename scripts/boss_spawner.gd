@@ -68,7 +68,9 @@ func spawn_boss_now() -> Node:
 	# 보스가 화면 안에 튀어나온다.
 	var spawn_radius: float = Arena.get_spawn_radius(self, spawn_margin)
 	var spawn_direction: Vector2 = Vector2.from_angle(randf() * TAU)
-	boss.global_position = Arena.get_center(self) + spawn_direction * spawn_radius
+	# 보스는 회수하지 않는다 (despawn_distance 는 0 그대로). 한 번 나온 보스가
+	# 뒤처졌다고 사라지면 이벤트가 없던 일이 된다.
+	boss.global_position = Arena.get_view_center(self) + spawn_direction * spawn_radius
 
 	# These must be assigned before entering the tree because enemy.gd initializes
 	# health from max_health in _ready().

@@ -45,8 +45,28 @@ static func get_design_size() -> Vector2:
 	)
 
 
+## 뷰포트 좌표계에서의 한가운데. **월드 좌표가 아니다.**
 static func get_center(node: Node) -> Vector2:
 	return get_size(node) * 0.5
+
+
+## 화면 한가운데가 가리키는 **월드 좌표**.
+##
+## M16에서 카메라가 들어오면서 "화면 중앙"과 "뷰포트 크기의 절반"이 더는 같지
+## 않게 됐다. 카메라가 (5000, 3000) 을 비추고 있으면 화면 중앙의 월드 좌표도
+## 거기다. 적은 **지금 보이는 화면의 바깥**에서 나와야 하므로 스포너는 반드시
+## 이 값을 기준으로 잡는다. get_center() 를 쓰면 주인공이 어디로 가든 적이 계속
+## 월드 원점 근처에서만 태어난다.
+##
+## 캔버스 변환의 역행렬을 쓰므로 **카메라가 없어도** 예전과 같은 값이 나온다.
+static func get_view_center(node: Node) -> Vector2:
+	if node != null and node.is_inside_tree():
+		var viewport: Viewport = node.get_viewport()
+		if viewport != null:
+			var size: Vector2 = viewport.get_visible_rect().size
+			if size.x > 0.0 and size.y > 0.0:
+				return viewport.get_canvas_transform().affine_inverse() * (size * 0.5)
+	return get_design_size() * 0.5
 
 
 ## 적이 생성되는 원의 반지름. 화면 대각선의 절반보다 커야 화면 밖에서 들어온다.

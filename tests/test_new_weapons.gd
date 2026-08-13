@@ -123,6 +123,12 @@ func _run() -> void:
 	# A large enemy collider continuously covers the orbit path. This makes the
 	# expected per-enemy interval independent of the moment an orbital pass begins.
 	var contact_enemy: TestEnemy = _make_enemy(_player.global_position, _orbital.orbit_radius + 30.0)
+	# 주인공의 물리를 멈춘다. 이 적은 주인공과 같은 자리에 겹쳐 있어서 move_and_slide
+	# 의 겹침 해소가 주인공을 밀어내는데, 그러면 궤도구가 적의 콜라이더 밖으로 나가
+	# 타격 창을 하나 놓친다. M16 전에는 `_clamp_to_screen()` 이 매 프레임 주인공을
+	# 같은 자리로 되돌려 놓아 이 밀림이 **우연히** 가려져 있었다.
+	# 이 케이스가 재는 것은 궤도구의 적별 타격 간격이지 주인공의 이동이 아니다.
+	_player.set_physics_process(false)
 	await _advance_physics_frames(2)
 	contact_enemy.health = 100.0
 	_orbital._elapsed_time = 0.0
