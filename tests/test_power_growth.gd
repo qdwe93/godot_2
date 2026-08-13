@@ -6,11 +6,12 @@ extends Node
 ##   1. 칼날(blade)이 **세 무기 모두**의 피해를 올리는가
 ##   2. 산탄·궤도구가 레벨로 자라는가 (예전에는 max_level = 1이라 한 번 얻으면 끝이었다)
 ##   3. 적 종류별 젬 값이 실제로 떨어지는 젬에 도달하는가
+##   4. 체력 재생이 실제로 회복시키는가 (M12b에서 신설)
 ##
 ## 수치를 하드코딩하지 않는다. 기대값은 전부 `UpgradeData`/`WaveData`의 정의에서
 ## 읽어 계산한다. 그래야 튜닝이 테스트를 깨뜨리지 않는다 (devlog 014 7절).
 
-const EXPECTED_CASE_COUNT: int = 6
+const EXPECTED_CASE_COUNT: int = 8
 const EPSILON: float = 0.0001
 const PLAYER_SCENE: PackedScene = preload("res://scenes/player.tscn")
 const LEVEL_UP_UI_SCENE: PackedScene = preload("res://scenes/level_up_ui.tscn")
@@ -42,6 +43,10 @@ func _ready() -> void:
 	if _setup_error:
 		return
 	_case_weapons_can_exceed_level_one()
+	await _case_regen_restores_health()
+	if _setup_error:
+		return
+	_case_heart_raises_regen()
 	# await 를 빼면 이 케이스는 기록되기 전에 _ready 가 끝나 버린다.
 	await _case_gem_value_reaches_the_gem()
 	if _setup_error:
@@ -287,6 +292,51 @@ func _case_gem_value_reaches_the_gem() -> void:
 	_record("gem_value_reaches_the_gem", is_equal_approx(dropped_value, richest_value),
 		"variant=%s expected=%.2f dropped=%.2f gems=%d" % [richest_id, richest_value, dropped_value, gem_container.get_child_count()])
 	context.free()
+
+
+## 체력 재생이 실제로 체력을 되돌리는지.
+##
+## M12b 이전에는 체력이 **오직 줄기만 했다.** 그래서 생존 시간이
+## "총 체력 / 평균 잠식량"으로 못박혔고, 화력을 아무리 올려도 그 상한이 안 바뀌었다.
+## 이 케이스는 그 상태로의 회귀를 막는다.
+func _case_regen_restores_health() -> void:
+	var fixture: Dictionary = _make_fixture()
+	if not _fixture_is_valid(fixture):
+		return
+	var player: Node = fixture["player"]
+	var regen: float = float(player.get(&"health_regen"))
+	var max_health: float = float(player.get(&"max_health"))
+	player.set(&"health", max_health * 0.5)
+	var before: float = float(player.get(&"health"))
+
+	for _frame in range(20):
+		await get_tree().physics_frame
+
+	var after: float = float(player.get(&"health"))
+	# 회복량 자체는 프레임 수에 달렸으므로 값이 아니라 **방향**과 상한만 본다.
+	_record("regen_restores_health", regen > 0.0 and after > before and after <= max_health,
+		"regen=%.2f before=%.2f after=%.2f max=%.2f" % [regen, before, after, max_health])
+	_finish(fixture)
+
+
+## 심장은 최대 체력만이 아니라 재생도 올려야 한다.
+func _case_heart_raises_regen() -> void:
+	var fixture: Dictionary = _make_fixture()
+	if not _fixture_is_valid(fixture):
+		return
+	var player: Node = fixture["player"]
+	var base_regen: float = float(player.get(&"health_regen"))
+	var definition: Dictionary = UpgradeData.get_definition(&"heart")
+	var per_level: float = float(definition.get("regen_per_level", 0.0))
+	var levels: int = mini(2, int(definition.get("max_level", 0)))
+
+	_emit(fixture, &"heart", levels)
+
+	var expected: float = base_regen + per_level * float(levels)
+	var actual: float = float(player.get(&"health_regen"))
+	_record("heart_raises_regen", per_level > 0.0 and is_equal_approx(actual, expected),
+		"per_level=%.2f levels=%d base=%.2f expected=%.2f actual=%.2f" % [per_level, levels, base_regen, expected, actual])
+	_finish(fixture)
 
 
 # --- 기록 -------------------------------------------------------------------

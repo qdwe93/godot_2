@@ -47,6 +47,9 @@ func _setup() -> bool:
 
 	_player = PLAYER_SCENE.instantiate()
 	_player.name = "Player"
+	# HUD가 체력 변화를 반영하는지만 본다. 체력 재생(M12b)이 켜져 있으면 표시값이
+	# 프레임마다 조금씩 올라가 정확 비교가 깨진다.
+	_player.set("health_regen", 0.0)
 	_world.add_child(_player)
 
 	_enemy_container = Node2D.new()

@@ -156,13 +156,25 @@ Godot 4.7에서는 `Variant` 값으로부터 `:=` 타입을 추론하는 선언�
 
 **진단 스크립트를 매번 새로 쓰지 말 것.** M10에서 그러다 같은 함정(일시정지 중 `physics_frame` 미발생, 출력 버퍼링)에 반복해서 걸렸다.
 
+### 0단계 — 곡선은 손으로 적지 말 것
+
+`wave_data.gd`의 `PHASES` 14줄은 `tools/balance_sim.py`의 `build_phases()`가 생성한 값이다. 두 끝점(시작·끝 스폰율, 끝 체력 배율)만 주면 사이를 기하급수로 채우므로 **절벽이 생길 수 없다**. 손으로 한 줄만 고쳐도 그 보장이 깨진다.
+
+**`enemies_per_spawn`은 1로 고정한다.** 1에서 2로 올리는 순간 스폰율이 정확히 2배가 되는데 `spawn_interval`은 되돌릴 수 없어 흡수할 방법이 없다. 예전 곡선의 60초 절벽이 이 문제였다. 밀도는 오직 `spawn_interval`로만 올린다.
+
 ### 1단계 — 계산으로 후보 거르기 (게임을 안 돌린다)
 
 ```bash
 python tools/balance_model.py
 ```
 
-페이즈별 **처치율 대 스폰율**과 **레벨별 성장 비용**을 출력한다. 처치율은 명중률 100% 가정의 상한이므로, 여기서 적자면 실제로도 확실히 적자다. `wave_data.gd`를 고쳤으면 이 파일의 `PHASES`도 같이 고친다.
+```bash
+python tools/balance_sim.py --plan m12b --verbose
+```
+
+`balance_model.py`는 페이즈별 **처치율 대 스폰율**과 성장 비용을, `balance_sim.py`는 한 판을 초 단위로 시뮬레이션한다. `wave_data.gd`를 고쳤으면 두 파일의 수치도 같이 고친다.
+
+> ⚠️ **시뮬레이터로 절대 시간을 예측하지 마라.** 0차원 모델이라 "도망치는 플레이어를 사거리 밖에서 쫓아오는 적"을 못 본다. M12b에서 시뮬 718초 대 실측 392초로 1.8배 어긋났다. 쓸 곳은 ① 곡선에 절벽이 있는지 ② 후보 A와 B의 **순서** 두 가지뿐이고, 최종 수치는 반드시 실측으로 정한다.
 
 ### 2단계 — 실측
 
@@ -178,7 +190,7 @@ python tools/balance_model.py
 | `--sample=<초>` | 샘플 간격 (기본 15) |
 | `--speed=<배>` | `Engine.time_scale` 배속 |
 
-- **`--pick=greedy`를 빼면** 무작위 선택이라 "게임이 약한 것"과 "선택이 나쁜 것"이 섞여 해석이 안 된다
+- **`--pick=greedy`를 빼면** 무작위 선택이라 "게임이 약한 것"과 "선택이 나쁜 것"이 섞여 해석이 안 된다. greedy 우선순위는 `tools/balance_sim.py`의 `GREEDY`와 같은 순서로 맞춰 둔다
 - **`--speed=3`이면 소요 시간이 정확히 1/3**이 된다. 배속 왜곡은 검출되지 않았다 (devlog 017 4절)
 - **한 조건당 최소 3회.** 3택 운에 따른 편차가 20초를 넘는다
 - 출력은 **파일로 직접 리다이렉트**한다. 파이프로 받으면 버퍼링되어 진행이 안 보인다
@@ -187,7 +199,7 @@ python tools/balance_model.py
 ## 전체 테스트 스위트 (한 번에 돌리기)
 
 ```powershell
-foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_player_damage","test_experience","test_level_up_ui","test_upgrades","test_upgrade_limits","test_new_weapons","test_waves","test_boss_and_separation","test_hud","test_game_flow","test_effects","test_scene_wiring","test_feedback","test_visual_hierarchy")) { $r = & "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" --quit-after 3600 "res://tests/$t.tscn" 2>&1 | Select-String -Pattern "TEST_RESULT|TEST_ERROR"; "$t => $r (exit=$LASTEXITCODE)" }
+foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_player_damage","test_experience","test_level_up_ui","test_upgrades","test_upgrade_limits","test_new_weapons","test_waves","test_boss_and_separation","test_hud","test_game_flow","test_effects","test_scene_wiring","test_feedback","test_visual_hierarchy","test_power_growth")) { $r = & "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" --quit-after 3600 "res://tests/$t.tscn" 2>&1 | Select-String -Pattern "TEST_RESULT|TEST_ERROR"; "$t => $r (exit=$LASTEXITCODE)" }
 ```
 
 | 스위트 | 케이스 | 검증 내용 |
@@ -209,6 +221,7 @@ foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_p
 | `test_scene_wiring` | 6 | **배선 스모크** — 전 업그레이드 노출, 그룹 실재, 교차 메서드 실재, 플레이어 자식 노드, 시그널, 보스 드랍 연결 |
 | `test_feedback` | 5 | 명중 이펙트 생성, 피격 번쩍, 번쩍 복원, 위험 상태 진입·해제 |
 | `test_visual_hierarchy` | 4 | **시각 규칙** — 밝기 순서, 전 요소 3:1 대비, 플레이어 최상위, 적 형태 구분 |
+| `test_power_growth` | 8 | **성장 경로** — 칼날이 세 무기 전부에 적용, 기본값 기준 복리, 산탄 탄수·궤도구 피해 레벨링, `max_level=1` 회귀 방지, 체력 재생, 젬 값 전달 |
 
 > ⚠️ `test_enemy_spawn`은 **간헐적으로 1케이스가 실패**한다 (12회 중 1회 관측, 재현 8회 실패). 스폰 개수·추적 거리가 타이머 위상에 민감한 것으로 추정. 한 번 실패하면 재실행해 보고, 반복되면 허용 오차를 넓힐 것.
 

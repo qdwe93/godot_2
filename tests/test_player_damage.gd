@@ -227,6 +227,10 @@ func _create_setup(invincibility_window: float) -> Dictionary:
 	var player := PLAYER_SCENE.instantiate() as CharacterBody2D
 	player.name = "Player"
 	player.set("invincibility_time", invincibility_window)
+	# 이 스위트는 접촉 피해와 무적 시간을 검사한다. M12b에서 들어온 체력 재생이
+	# 켜져 있으면 프레임이 흐르는 동안 체력이 조금씩 차올라 정확 비교가 깨진다.
+	# 재생 자체는 test_power_growth 가 따로 검사한다.
+	player.set("health_regen", 0.0)
 	player.collision_layer = 0
 	player.collision_mask = 0
 	player.global_position = _design_screen_size() / 2.0
