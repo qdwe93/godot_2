@@ -21,11 +21,21 @@
 [node name="Main" type="Node2D"]
 script = ExtResource("1_main")
 
-[node name="Background" type="ColorRect" parent="."]
-offset_left = -40.0
-offset_top = -40.0
-offset_right = 1320.0
-offset_bottom = 760.0
+[node name="BackgroundLayer" type="CanvasLayer" parent="."]
+; 배경을 CanvasLayer 안에 둔다. 이유가 두 가지다.
+;
+; 1. Control 의 앵커는 부모가 Node2D 면 동작하지 않는다 (부모 영역이 0x0 으로 잡힌다).
+;    CanvasLayer 아래에서는 뷰포트 전체를 기준으로 앵커가 제대로 걸린다.
+; 2. 화면 흔들림은 Main 의 position 을 움직이는데, 배경이 Main 의 자식이면 같이
+;    흔들려서 가장자리가 드러난다. 그래서 예전에는 상하좌우 40px 를 덧대야 했다.
+;    여기 있으면 흔들리지 않으므로 덧댈 필요가 없다 — 드러날 가장자리가 없다.
+layer = -1
+
+[node name="Background" type="ColorRect" parent="BackgroundLayer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
 color = Color(0.08, 0.08, 0.1, 1)
 mouse_filter = 2
 

@@ -26,6 +26,14 @@ signal died()
 var health: float
 var is_invincible: bool = false
 
+## 체력이 이 비율 이하로 떨어지면 위험 상태다. HUD의 판정 기준과 같은 값을 쓴다.
+const DANGER_HEALTH_RATIO: float = 0.3
+const DANGER_BLINK_COLOUR: Color = Color(1.0, 0.25, 0.25)
+const DANGER_BLINK_SPEED: float = 6.0
+
+var _sprite: Polygon2D = null
+var _base_sprite_colour: Color = Color.WHITE
+var _danger_blink_time: float = 0.0
 var _invincibility_remaining: float = 0.0
 var _is_dead: bool = false
 var _hurtbox: Area2D
@@ -39,6 +47,9 @@ func _ready() -> void:
 	_hurtbox = get_node_or_null("Hurtbox") as Area2D
 	if _hurtbox == null:
 		push_error("Player is missing its Hurtbox Area2D.")
+	_sprite = get_node_or_null("Sprite") as Polygon2D
+	if _sprite != null:
+		_base_sprite_colour = _sprite.color
 
 
 func _physics_process(delta: float) -> void:
@@ -48,12 +59,44 @@ func _physics_process(delta: float) -> void:
 		return
 
 	_apply_regen(delta)
+	_update_danger_blink(delta)
 
 	var input_vector: Vector2 = Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	velocity = input_vector * speed
 	move_and_slide()
 	_clamp_to_screen()
 	_poll_contact_damage()
+
+
+## 체력이 낮으면 주인공이 빨갛게 깜빡인다.
+##
+## 예전에는 화면 전체를 붉은 비네트로 덮었는데, 실기 테스트 스크린샷을 보니
+## **화면이 통째로 빨개져서** 적과 젬이 잘 안 보였다. 위험은 시선이 이미 가 있는
+## 주인공에게 표시하는 편이 읽기 쉽고 화면도 덜 가린다.
+func _update_danger_blink(delta: float) -> void:
+	if _sprite == null:
+		return
+	# 피격 무적 중에는 건드리지 않는다 — 다른 연출과 겹치면 둘 다 안 읽힌다.
+	if max_health <= 0.0:
+		return
+	if health / max_health > DANGER_HEALTH_RATIO or _is_dead:
+		if _danger_blink_time != 0.0:
+			_danger_blink_time = 0.0
+			_sprite.color = _base_sprite_colour
+		return
+
+	_danger_blink_time += delta
+	# 0..1 사이를 오가는 부드러운 맥동. 0이면 평소 색, 1이면 완전히 빨강.
+	var pulse: float = (sin(_danger_blink_time * DANGER_BLINK_SPEED) + 1.0) * 0.5
+	_sprite.color = _base_sprite_colour.lerp(DANGER_BLINK_COLOUR, pulse)
+
+
+func is_low_health() -> bool:
+	return max_health > 0.0 and not _is_dead and health / max_health <= DANGER_HEALTH_RATIO
+
+
+func get_base_sprite_colour() -> Color:
+	return _base_sprite_colour
 
 
 func _apply_regen(delta: float) -> void:
@@ -90,11 +133,12 @@ func _update_invincibility(delta: float) -> void:
 
 
 func _clamp_to_screen() -> void:
-	var viewport_width: int = ProjectSettings.get_setting("display/window/size/viewport_width")
-	var viewport_height: int = ProjectSettings.get_setting("display/window/size/viewport_height")
+	# 기준 해상도(1280x720)가 아니라 **실제 뷰포트**를 쓴다. stretch aspect=expand라
+	# 화면비가 다른 기기에서는 플레이 영역이 더 넓다 (Arena 참고).
+	var arena_size: Vector2 = Arena.get_size(self)
 	global_position = Vector2(
-		clampf(global_position.x, body_radius, float(viewport_width) - body_radius),
-		clampf(global_position.y, body_radius, float(viewport_height) - body_radius)
+		clampf(global_position.x, body_radius, arena_size.x - body_radius),
+		clampf(global_position.y, body_radius, arena_size.y - body_radius)
 	)
 
 

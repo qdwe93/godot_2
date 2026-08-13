@@ -63,12 +63,11 @@ func spawn_boss_now() -> Node:
 		return null
 	var boss: Node2D = spawned_node
 
-	var viewport_width: float = float(ProjectSettings.get_setting("display/window/size/viewport_width"))
-	var viewport_height: float = float(ProjectSettings.get_setting("display/window/size/viewport_height"))
-	var design_screen_size: Vector2 = Vector2(viewport_width, viewport_height)
-	var spawn_radius: float = design_screen_size.length() / 2.0 + spawn_margin
+	# 실제 뷰포트 기준 (Arena 참고). 기준 해상도로 계산하면 넓은 화면에서
+	# 보스가 화면 안에 튀어나온다.
+	var spawn_radius: float = Arena.get_spawn_radius(self, spawn_margin)
 	var spawn_direction: Vector2 = Vector2.from_angle(randf() * TAU)
-	boss.global_position = design_screen_size / 2.0 + spawn_direction * spawn_radius
+	boss.global_position = Arena.get_center(self) + spawn_direction * spawn_radius
 
 	# These must be assigned before entering the tree because enemy.gd initializes
 	# health from max_health in _ready().

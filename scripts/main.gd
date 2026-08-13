@@ -5,6 +5,8 @@ var _enemy_spawner: Node = null
 var _game_over_label: Label = null
 var _survival_time := 0.0
 var _player_dead := false
+## 직전 체력. 피해와 회복을 구분하기 위해 필요하다 (INF로 시작해 첫 보고를 회복으로 오인하지 않는다).
+var _last_known_health: float = INF
 
 
 func _ready() -> void:
@@ -65,7 +67,19 @@ func _process(delta: float) -> void:
 
 func _on_player_health_changed(current: float, maximum: float) -> void:
 	print("PLAYER_HEALTH current=%.3f maximum=%.3f" % [current, maximum])
-	# 피격 시 화면을 짧게 흔든다. 그룹으로 찾으므로 흔들기 노드가 없어도 조용히 넘어간다.
+
+	# **줄었을 때만** 흔든다.
+	#
+	# M12b에서 체력 재생을 넣으면서 이 시그널이 회복 중에도 매 프레임 발생하게 됐다.
+	# 그런데 여기서는 그걸 구분하지 않고 무조건 흔들었다. 결과적으로 재생이 도는
+	# 내내 화면이 떨렸다 — 실기 테스트에서 "조금만 깎여도 어지럽다"고 나온 원인이
+	# 피해가 아니라 **회복**이었다.
+	var took_damage: bool = current < _last_known_health
+	_last_known_health = current
+	if not took_damage:
+		return
+
+	# 그룹으로 찾으므로 흔들기 노드가 없어도 조용히 넘어간다.
 	var shaker: Node = get_tree().get_first_node_in_group(&"screen_shake")
 	if shaker != null and shaker.has_method("shake"):
 		shaker.call("shake")

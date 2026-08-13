@@ -137,10 +137,13 @@ func _test_diagonal_speed(player: CharacterBody2D, case_1_distance: float) -> vo
 func _test_screen_bounds_clamp(player: CharacterBody2D) -> void:
 	_release_movement_actions()
 	player.global_position = SCREEN_CENTER
-	var project_viewport_size := Vector2(
-		float(ProjectSettings.get_setting("display/window/size/viewport_width")),
-		float(ProjectSettings.get_setting("display/window/size/viewport_height"))
-	)
+	# 기준 해상도가 아니라 **구현과 같은 출처**(Arena)를 쓴다.
+	#
+	# 화면비가 다른 기기에서는 뷰포트가 넓어지고(stretch aspect=expand), 헤드리스는
+	# 높이를 틀리게 보고한다(1280x720인데 1280x1280). 어느 쪽이든 "플레이어가
+	# 플레이 영역 안에 갇히는가"라는 **관계**는 그대로 성립한다.
+	# 값을 하드코딩하면 이 테스트는 실행 환경마다 다른 답을 낸다.
+	var project_viewport_size := Arena.get_size(player)
 	var runtime_viewport_size := get_viewport_rect().size
 	var body_radius: float = float(player.get("body_radius"))
 	var minimum_position := Vector2(body_radius, body_radius)

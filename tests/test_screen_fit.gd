@@ -1,0 +1,209 @@
+extends Node
+
+## 실기 테스트(갤럭시 S21)에서 나온 두 문제를 고정한다.
+##
+## 1. **화면 잘림** — `stretch aspect=expand`라서 20:9 기기에서는 뷰포트가 1600x720이
+##    되는데, 코드와 씬이 기준 해상도 1280x720을 하드코딩하고 있었다. 그래서
+##    오른쪽 320px가 회색으로 남고, 적은 그 위를 돌아다니고, HUD 시계는 화면
+##    오른쪽 끝이 아니라 1280 자리에 붙었다.
+##    → 기기별 빌드가 아니라 **크기를 한 곳(Arena)에서만 읽으면 되는 문제**였다.
+##
+## 2. **화면이 계속 흔들림** — M12b에서 체력 재생을 넣으면서 `health_changed`가
+##    회복 중에도 매 프레임 발생하게 됐는데, 흔들기 쪽은 피해와 회복을 구분하지
+##    않았다. 즉 어지러움의 원인은 피격이 아니라 **회복**이었다.
+##
+## 두 문제 모두 유닛 테스트를 전부 통과한 상태에서 실기로만 드러났다.
+
+const EXPECTED_CASE_COUNT: int = 6
+const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
+
+var _passed: int = 0
+var _failed: int = 0
+var _skipped: int = 0
+var _recorded: int = 0
+var _main: Node = null
+
+
+func _ready() -> void:
+	_main = MAIN_SCENE.instantiate()
+	if _main == null:
+		print("TEST_ERROR setup_failed main_scene_could_not_instantiate")
+		_finish()
+		return
+	add_child(_main)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	# GameFlow 는 타이틀 화면에서 트리를 일시정지한다. 그대로 두면 ScreenShake 의
+	# _physics_process 가 아예 돌지 않아 "흔들림이 안 끝나는" 것처럼 보인다.
+	var game_flow: Node = _main.get_node_or_null("GameFlow")
+	if game_flow != null and game_flow.has_method(&"enable_auto_play"):
+		game_flow.call(&"enable_auto_play")
+	await get_tree().process_frame
+
+	_case_background_covers_viewport()
+	_case_hud_reaches_right_edge()
+	_case_panels_cover_viewport()
+	await _case_shake_ignores_healing()
+	await _case_shake_has_minimum_interval()
+	_case_low_health_shows_on_player()
+
+	_main.free()
+	_finish()
+
+
+func _finish() -> void:
+	if _recorded != EXPECTED_CASE_COUNT:
+		print("TEST_ERROR missing_cases expected=%d recorded=%d" % [EXPECTED_CASE_COUNT, _recorded])
+		_failed += 1
+	var overall: String = "PASS" if _failed == 0 and _passed > 0 and _recorded == EXPECTED_CASE_COUNT else "FAIL"
+	print("TEST_RESULT %s passed=%d failed=%d skipped=%d" % [overall, _passed, _failed, _skipped])
+	get_tree().quit(0 if overall == "PASS" else 1)
+
+
+## 배경이 뷰포트를 전부 덮는가. 안 덮으면 그 부분이 회색으로 드러난다.
+func _case_background_covers_viewport() -> void:
+	var background: ColorRect = _main.get_node_or_null("BackgroundLayer/Background") as ColorRect
+	if background == null:
+		_record("background_covers_viewport", false, "background_missing")
+		return
+	var arena: Vector2 = Arena.get_size(_main)
+	var rect: Rect2 = Rect2(background.global_position, background.size)
+	# 배경은 CanvasLayer 안에 있어 흔들리지 않으므로 딱 맞기만 해도 된다.
+	var covers: bool = rect.position.x <= 0.0 and rect.position.y <= 0.0 \
+		and rect.end.x >= arena.x and rect.end.y >= arena.y
+	_record("background_covers_viewport", covers,
+		"arena=(%.0f,%.0f) background=(%.0f,%.0f)-(%.0f,%.0f)" % [
+			arena.x, arena.y, rect.position.x, rect.position.y, rect.end.x, rect.end.y])
+
+
+## 오른쪽 위 HUD가 화면 오른쪽 끝을 따라가는가.
+## 고정 오프셋이면 넓은 화면에서 가운데에 떠 버린다.
+func _case_hud_reaches_right_edge() -> void:
+	var hud: Node = _main.get_node_or_null("HUD")
+	if hud == null:
+		_record("hud_reaches_right_edge", false, "hud_missing")
+		return
+	var arena: Vector2 = Arena.get_size(_main)
+	var offenders: PackedStringArray = []
+	for label_name in ["TimeLabel", "KillLabel"]:
+		var label: Control = hud.get_node_or_null(label_name) as Control
+		if label == null:
+			offenders.append("%s(missing)" % label_name)
+			continue
+		# 화면 오른쪽 끝에서 이 거리 안에 있어야 "오른쪽에 붙어 있다"고 본다.
+		var distance: float = arena.x - (label.position.x + label.size.x)
+		if distance > 60.0:
+			offenders.append("%s(%.0fpx)" % [label_name, distance])
+	_record("hud_reaches_right_edge", offenders.is_empty(),
+		"arena_width=%.0f %s" % [arena.x, "ok" if offenders.is_empty() else ",".join(offenders)])
+
+
+## 타이틀·게임오버 패널이 화면 전체를 덮는가. 안 덮으면 가장자리에 게임이 비친다.
+func _case_panels_cover_viewport() -> void:
+	var game_flow: Node = _main.get_node_or_null("GameFlow")
+	if game_flow == null:
+		_record("panels_cover_viewport", false, "game_flow_missing")
+		return
+	var arena: Vector2 = Arena.get_size(_main)
+	var offenders: PackedStringArray = []
+	for panel_name in ["TitlePanel", "GameOverPanel"]:
+		var panel: Control = game_flow.get_node_or_null(panel_name) as Control
+		if panel == null:
+			offenders.append("%s(missing)" % panel_name)
+			continue
+		if panel.size.x < arena.x - 1.0 or panel.size.y < arena.y - 1.0:
+			offenders.append("%s(%.0fx%.0f)" % [panel_name, panel.size.x, panel.size.y])
+	_record("panels_cover_viewport", offenders.is_empty(),
+		"arena=(%.0f,%.0f) %s" % [arena.x, arena.y, "ok" if offenders.is_empty() else ",".join(offenders)])
+
+
+## 회복으로는 화면이 흔들리면 안 된다. 이게 실기에서 어지러웠던 진짜 원인이다.
+func _case_shake_ignores_healing() -> void:
+	var shaker: Node = _main.get_node_or_null("ScreenShake")
+	var player: Node = _main.get_node_or_null("Player")
+	if shaker == null or player == null:
+		_record("shake_ignores_healing", false, "shaker_or_player_missing")
+		return
+
+	# 먼저 피해를 줘서 흔들림을 한 번 소비하고, 간격 제한도 풀어 준다.
+	player.call(&"take_damage", 10.0)
+	await get_tree().process_frame
+	if shaker.has_method(&"clear_cooldown_for_testing"):
+		shaker.call(&"clear_cooldown_for_testing")
+	# 흔들림이 끝날 때까지 기다린다.
+	for _frame in range(40):
+		await get_tree().physics_frame
+	if shaker.has_method(&"clear_cooldown_for_testing"):
+		shaker.call(&"clear_cooldown_for_testing")
+	var shaking_before: bool = bool(shaker.call(&"is_shaking"))
+
+	# 이제 회복만 시킨다 — health_changed 는 발생하지만 흔들리면 안 된다.
+	player.set(&"health", float(player.get(&"health")) + 5.0)
+	player.emit_signal(&"health_changed", float(player.get(&"health")), float(player.get(&"max_health")))
+	await get_tree().process_frame
+	var shaking_after: bool = bool(shaker.call(&"is_shaking"))
+
+	_record("shake_ignores_healing", not shaking_before and not shaking_after,
+		"before=%s after=%s" % [str(shaking_before).to_lower(), str(shaking_after).to_lower()])
+
+
+## 피해가 연달아 들어와도 흔들림에는 최소 간격이 있어야 한다.
+func _case_shake_has_minimum_interval() -> void:
+	var shaker: Node = _main.get_node_or_null("ScreenShake")
+	if shaker == null:
+		_record("shake_has_minimum_interval", false, "shaker_missing")
+		return
+	var interval: float = float(shaker.get(&"minimum_interval"))
+	shaker.call(&"clear_cooldown_for_testing")
+	shaker.call(&"shake")
+	var cooldown: float = float(shaker.call(&"get_cooldown_remaining"))
+	# 흔들림이 끝난 직후에 다시 요청해도 간격 안이면 거부돼야 한다.
+	for _frame in range(30):
+		await get_tree().physics_frame
+	var settled: bool = not bool(shaker.call(&"is_shaking"))
+	shaker.call(&"shake")
+	var refused: bool = not bool(shaker.call(&"is_shaking"))
+
+	_record("shake_has_minimum_interval", interval > 0.0 and cooldown > 0.0 and settled and refused,
+		"interval=%.2f cooldown_after_shake=%.2f settled=%s refused_within_interval=%s" % [
+			interval, cooldown, str(settled).to_lower(), str(refused).to_lower()])
+
+
+## 체력이 낮으면 주인공이 색으로 알려야 한다.
+func _case_low_health_shows_on_player() -> void:
+	var player: Node = _main.get_node_or_null("Player")
+	if player == null or not player.has_method(&"is_low_health"):
+		_record("low_health_shows_on_player", false, "player_or_api_missing")
+		return
+	var sprite: Polygon2D = player.get_node_or_null("Sprite") as Polygon2D
+	if sprite == null:
+		_record("low_health_shows_on_player", false, "sprite_missing")
+		return
+
+	var base_colour: Color = Color(player.call(&"get_base_sprite_colour"))
+	var max_health: float = float(player.get(&"max_health"))
+	player.set(&"health", max_health * 0.1)
+
+	# 맥동하므로 여러 프레임을 보며 "평소 색과 달라지는 순간"이 있는지 본다.
+	var changed: bool = false
+	for _frame in range(40):
+		player.call(&"_update_danger_blink", 1.0 / 60.0)
+		if not sprite.color.is_equal_approx(base_colour):
+			changed = true
+			break
+
+	var low: bool = bool(player.call(&"is_low_health"))
+	_record("low_health_shows_on_player", low and changed,
+		"is_low=%s colour_changed=%s base=%s now=%s" % [
+			str(low).to_lower(), str(changed).to_lower(), str(base_colour), str(sprite.color)])
+
+
+func _record(case_name: String, ok: bool, detail: String) -> void:
+	_recorded += 1
+	if ok:
+		_passed += 1
+		print("TEST_CASE %s PASS %s" % [case_name, detail])
+	else:
+		_failed += 1
+		print("TEST_CASE %s FAIL %s" % [case_name, detail])

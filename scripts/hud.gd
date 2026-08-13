@@ -26,7 +26,10 @@ var _normal_health_fill_style: StyleBox
 var _danger_health_fill_style: StyleBoxFlat = StyleBoxFlat.new()
 
 const DANGER_HEALTH_RATIO: float = 0.3
-const MAX_DANGER_ALPHA: float = 0.22
+# 0.22였을 때 실기 스크린샷에서 화면이 통째로 붉게 물들어 적과 젬이 묻혔다.
+# 위험 표시의 주역은 이제 주인공의 빨간 깜빡임(player.gd)이고, 비네트는 가장자리에
+# 얇게 깔리는 보조 역할만 한다.
+const MAX_DANGER_ALPHA: float = 0.09
 const DANGER_COLOUR: Color = Color(0.95, 0.25, 0.25, 1.0)
 
 

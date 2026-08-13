@@ -114,12 +114,9 @@ func _spawn_enemy(variant_id: StringName, health_multiplier: float, apply_varian
 				outline.default_color = sprite_color.lightened(0.45)
 				outline.visible = outline_width > 0.0
 
-	var design_screen_size: Vector2 = Vector2(
-		float(ProjectSettings.get_setting("display/window/size/viewport_width")),
-		float(ProjectSettings.get_setting("display/window/size/viewport_height"))
-	)
-	var screen_center: Vector2 = design_screen_size / 2.0
-	var spawn_radius: float = design_screen_size.length() / 2.0 + spawn_margin
+	# 실제 뷰포트 기준. 기준 해상도로 계산하면 넓은 화면에서 적이 화면 안에 생긴다.
+	var screen_center: Vector2 = Arena.get_center(self)
+	var spawn_radius: float = Arena.get_spawn_radius(self, spawn_margin)
 	var angle: float = randf() * TAU
 	var spawn_offset: Vector2 = Vector2(cos(angle), sin(angle)) * spawn_radius
 

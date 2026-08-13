@@ -47,7 +47,9 @@ func _run_tests() -> void:
 
 
 func _read_visual_colours() -> Dictionary:
-	var background: ColorRect = _main.get_node_or_null("Background") as ColorRect
+	# 배경은 BackgroundLayer(CanvasLayer) 아래로 옮겼다. Control 앵커가 Node2D 부모
+	# 밑에서는 동작하지 않아 화면비가 다른 기기에서 뷰포트를 못 덮었기 때문이다.
+	var background: ColorRect = _main.get_node_or_null("BackgroundLayer/Background") as ColorRect
 	var player: Node = PLAYER_SCENE.instantiate()
 	var gem: Node = XP_GEM_SCENE.instantiate()
 	var projectile: Node = PROJECTILE_SCENE.instantiate()
