@@ -28,9 +28,12 @@ script = ExtResource("1_main")
 ;
 ; 1. Control 의 앵커는 부모가 Node2D 면 동작하지 않는다 (부모 영역이 0x0 으로 잡힌다).
 ;    CanvasLayer 아래에서는 뷰포트 전체를 기준으로 앵커가 제대로 걸린다.
-; 2. 화면 흔들림은 Main 의 position 을 움직이는데, 배경이 Main 의 자식이면 같이
-;    흔들려서 가장자리가 드러난다. 그래서 예전에는 상하좌우 40px 를 덧대야 했다.
-;    여기 있으면 흔들리지 않으므로 덧댈 필요가 없다 — 드러날 가장자리가 없다.
+; 2. CanvasLayer 안에 있으면 카메라와 흔들림의 영향을 받지 않는다. 화면 좌표에
+;    붙박여 있으므로 어떤 경우에도 가장자리가 드러나지 않는다 (M9 에서는 상하좌우
+;    40px 를 덧대야 했다).
+;
+; M16 이후 이 ColorRect 는 **바탕색**만 담당하고, 움직임을 보여주는 격자는 월드
+; 좌표계의 Ground 노드가 그린다.
 layer = -1
 
 [node name="Background" type="ColorRect" parent="BackgroundLayer"]

@@ -168,6 +168,21 @@ Godot 4.7에서는 `Variant` 값으로부터 `:=` 타입을 추론하는 선언�
 - 노드 블록에서 `script = ExtResource(...)`는 **스크립트가 선언한 속성보다 먼저** 와야 한다. 순서가 뒤집히면 그 속성값은 조용히 버려진다 — 게임은 정상 실행되고 기능만 동작하지 않는다.
 - 시그널 연결은 **객체를 만드는 쪽에서 그 자리에서** 한다. `get_tree().node_added` 같은 전역 훅으로 대신하지 않는다. 전역 훅은 모든 노드에 반응하고, 이름이 같은 시그널을 가진 무관한 노드까지 걸린다.
 
+## 화면·세계 좌표 (M16에서 카메라 도입)
+
+주인공은 **항상 화면 한가운데**에 있고 세계가 흐른다. `Camera2D` 는 주인공의 자식이다.
+
+- 화면 크기는 `Arena.get_size(node)`, **화면 중앙의 월드 좌표는 `Arena.get_view_center(node)`**.
+  둘을 헷갈리면 조용히 어긋난다 — 적 스포너가 `get_center()` 를 쓰면 주인공이 멀리
+  간 뒤로 적이 아예 안 나오는데 에러는 하나도 안 뜬다
+- **세계에 경계가 없다.** `_clamp_to_screen()` 은 없앴다. 주인공을 가두는 코드를
+  다시 넣지 말 것 — 사각형이 주인공과 함께 움직이므로 자기 자신을 가두게 된다
+- 화면 흔들림은 **카메라의 position** 을 흔든다. `Main` 을 흔들면 카메라도 자식으로
+  같이 움직여 화면상으로는 아무 일도 일어나지 않는다
+- 배경이 단색이면 움직임이 보이지 않는다. `scripts/background_grid.gd` 의 바닥 격자가
+  타일 단위로 끊어 따라오면서 "흐르는 세계"를 만든다. 매끄럽게 따라오게 고치면
+  격자가 주인공에게 붙어 다시 아무것도 안 움직인다
+
 ## 밸런스 측정 (M12a에서 상설화)
 
 **진단 스크립트를 매번 새로 쓰지 말 것.** M10에서 그러다 같은 함정(일시정지 중 `physics_frame` 미발생, 출력 버퍼링)에 반복해서 걸렸다.
@@ -215,7 +230,7 @@ python tools/balance_sim.py --plan m12b --verbose
 ## 전체 테스트 스위트 (한 번에 돌리기)
 
 ```powershell
-foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_player_damage","test_experience","test_level_up_ui","test_upgrades","test_upgrade_limits","test_new_weapons","test_waves","test_boss_and_separation","test_hud","test_game_flow","test_effects","test_scene_wiring","test_feedback","test_visual_hierarchy","test_power_growth","test_touch_joystick")) { $r = & "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" --quit-after 3600 "res://tests/$t.tscn" 2>&1 | Select-String -Pattern "TEST_RESULT|TEST_ERROR"; "$t => $r (exit=$LASTEXITCODE)" }
+foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_player_damage","test_experience","test_level_up_ui","test_upgrades","test_upgrade_limits","test_new_weapons","test_waves","test_boss_and_separation","test_hud","test_game_flow","test_effects","test_scene_wiring","test_feedback","test_visual_hierarchy","test_power_growth","test_touch_joystick","test_screen_fit","test_camera_follow")) { $r = & "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" --quit-after 3600 "res://tests/$t.tscn" 2>&1 | Select-String -Pattern "TEST_RESULT|TEST_ERROR"; "$t => $r (exit=$LASTEXITCODE)" }
 ```
 
 | 스위트 | 케이스 | 검증 내용 |
@@ -239,6 +254,8 @@ foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_p
 | `test_visual_hierarchy` | 4 | **시각 규칙** — 밝기 순서, 전 요소 3:1 대비, 플레이어 최상위, 적 형태 구분 |
 | `test_touch_joystick` | 6 | **터치 조작** — 끌기 방향, 뗄 때 액션 해제, 데드존, 세기 비례, 두 번째 손가락, main.tscn 배선 |
 | `test_power_growth` | 8 | **성장 경로** — 칼날이 세 무기 전부에 적용, 기본값 기준 복리, 산탄 탄수·궤도구 피해 레벨링, `max_level=1` 회귀 방지, 체력 재생, 젬 값 전달 |
+| `test_screen_fit` | 7 | **실기 회귀** — 배경·HUD·패널이 뷰포트를 덮는가, 회복으로 안 흔들리는가, 흔들림 최소 간격, 저체력 표시, **레벨업 화면 덮개·버튼 크기·앵커** |
+| `test_camera_follow` | 7 | **카메라와 무한 세계** — 카메라 활성, 주인공이 항상 화면 중앙, 가두기 없음, 적이 보이는 화면 둘레에서 스폰, 뒤처진 적 회수(`died` 미발생), 흔들림 대상이 카메라, 바닥 격자 타일 스냅 |
 
 > ⚠️ `test_enemy_spawn`은 **간헐적으로 1케이스가 실패**한다 (12회 중 1회 관측, 재현 8회 실패). 스폰 개수·추적 거리가 타이머 위상에 민감한 것으로 추정. 한 번 실패하면 재실행해 보고, 반복되면 허용 오차를 넓힐 것.
 
@@ -261,6 +278,8 @@ python tools/check_sprite_luminance.py assets/sprites
 ```
 
 휘도(어두운 디테일)·충전율(슬롯 대비 크기)·밝기 순서 세 가지를 본다.
+대비 기준은 **가장 밝은 배경 톤**이다 — M16부터 ColorRect(#14141A)가 아니라 바닥
+격자선(#1E1E26)이 그 자리다. 격자를 더 밝게 바꾸면 투사체가 3:1 아래로 떨어진다.
 `.tscn`의 `Polygon2D`를 `Sprite2D`로 바꾸면 `enemy_spawner.gd`·`boss_spawner.gd`·`enemy.gd`의
 `color` 주입이 **에러 없이 조용히 죽는다** (`Sprite2D`에는 `color`가 없다).
 
