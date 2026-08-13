@@ -2,7 +2,7 @@ class_name WaveData
 extends RefCounted
 
 
-## 난이도 곡선 (M12b 재설계)
+## 난이도 곡선 (M16 재조정)
 ##
 ## 설계 규칙 세 가지. 어기면 M12a에서 실측한 실패가 재발한다.
 ##
@@ -11,13 +11,24 @@ extends RefCounted
 ##    없어서 그 절벽을 흡수할 방법이 없다. 예전 곡선의 60초 지점이 정확히 이
 ##    문제였다 — 스폰율이 1.25에서 3.33/초로 한 단계에서 2.7배 뛰었다.
 ##    밀도는 오직 `spawn_interval`로만 올린다.
-## 2. **연속한 두 페이즈의 스폰율 비는 1.5배를 넘지 않는다.** 아래 표는 최대 1.48배다.
+## 2. **연속한 두 페이즈의 스폰율 비는 1.5배를 넘지 않는다.** 아래 표는 최대 1.45배다.
 ## 3. **체력 배율은 플레이어 화력 성장과 나란히 간다.** 화력 상한이 71배
 ##    (10 -> 710 dps)이므로 체력 배율 9배 + 구성 이동(평균 체력 10 -> 27)으로
 ##    받는다.
 ##
-## 이 표는 `tools/balance_sim.py`의 `build_phases(14, 900.0, 0.83, 4.0, 5.0)`이
+## 이 표는 `tools/balance_sim.py`의 `build_phases(14, 900.0, 0.83, 8.0, 9.0)`이
 ## 생성한 값이다. **손으로 고치지 말고 그 스크립트로 다시 뽑아라.**
+##
+##     python tools/balance_sim.py --plan m16 --emit-gdscript
+##
+## M16에서 4.0/5.0 -> 8.0/9.0 으로 올린 이유
+## -----------------------------------------
+## 카메라가 들어와 세계에 경계가 없어지자 같은 곡선에서 판이 **1.9배** 길어졌다
+## (실측 572~886초 -> 1166~1500+초). 도망이 항상 성립하기 때문이다.
+##
+## 8.0/9.0 은 M12b 에서 한 번 썼다가 "392초, 너무 어렵다"고 되돌린 값이다.
+## 경계가 없어진 지금은 그 어려움이 상쇄된다는 것이 이 조정의 가설이고,
+## 실측으로 확인한다 (devlog 019).
 const PHASES: Array[Dictionary] = [
 	{
 		"start_time": 0.0,
@@ -29,106 +40,106 @@ const PHASES: Array[Dictionary] = [
 	},
 	{
 		"start_time": 61.0,
-		"spawn_interval": 0.93,
+		"spawn_interval": 0.83,
 		"max_enemies": 60,
 		"enemies_per_spawn": 1,
-		"health_multiplier": 1.13,
+		"health_multiplier": 1.18,
 		"weights": {&"basic": 1},
 	},
 	{
 		"start_time": 126.0,
-		"spawn_interval": 0.79,
+		"spawn_interval": 0.65,
 		"max_enemies": 70,
 		"enemies_per_spawn": 1,
-		"health_multiplier": 1.28,
+		"health_multiplier": 1.40,
 		"weights": {&"basic": 4, &"fast": 1},
 	},
 	{
 		"start_time": 193.0,
-		"spawn_interval": 0.69,
+		"spawn_interval": 0.54,
 		"max_enemies": 90,
 		"enemies_per_spawn": 1,
-		"health_multiplier": 1.45,
+		"health_multiplier": 1.66,
 		"weights": {&"basic": 4, &"fast": 1},
 	},
 	{
 		"start_time": 261.0,
-		"spawn_interval": 0.60,
+		"spawn_interval": 0.45,
 		"max_enemies": 100,
 		"enemies_per_spawn": 1,
-		"health_multiplier": 1.64,
+		"health_multiplier": 1.97,
 		"weights": {&"basic": 4, &"fast": 2},
 	},
 	{
 		"start_time": 330.0,
-		"spawn_interval": 0.54,
+		"spawn_interval": 0.38,
 		"max_enemies": 120,
 		"enemies_per_spawn": 1,
-		"health_multiplier": 1.86,
+		"health_multiplier": 2.33,
 		"weights": {&"basic": 4, &"fast": 2},
 	},
 	{
 		"start_time": 400.0,
-		"spawn_interval": 0.48,
+		"spawn_interval": 0.32,
 		"max_enemies": 130,
 		"enemies_per_spawn": 1,
-		"health_multiplier": 2.10,
+		"health_multiplier": 2.76,
 		"weights": {&"basic": 3, &"fast": 2, &"tank": 1},
 	},
 	{
 		"start_time": 470.0,
-		"spawn_interval": 0.43,
+		"spawn_interval": 0.28,
 		"max_enemies": 150,
 		"enemies_per_spawn": 1,
-		"health_multiplier": 2.38,
+		"health_multiplier": 3.26,
 		"weights": {&"basic": 3, &"fast": 2, &"tank": 1},
 	},
 	{
 		"start_time": 541.0,
-		"spawn_interval": 0.39,
+		"spawn_interval": 0.24,
 		"max_enemies": 160,
 		"enemies_per_spawn": 1,
-		"health_multiplier": 2.69,
+		"health_multiplier": 3.87,
 		"weights": {&"basic": 3, &"fast": 3, &"tank": 2},
 	},
 	{
 		"start_time": 612.0,
-		"spawn_interval": 0.36,
+		"spawn_interval": 0.21,
 		"max_enemies": 180,
 		"enemies_per_spawn": 1,
-		"health_multiplier": 3.05,
+		"health_multiplier": 4.58,
 		"weights": {&"basic": 3, &"fast": 3, &"tank": 2},
 	},
 	{
 		"start_time": 683.0,
-		"spawn_interval": 0.33,
+		"spawn_interval": 0.18,
 		"max_enemies": 190,
 		"enemies_per_spawn": 1,
-		"health_multiplier": 3.45,
+		"health_multiplier": 5.42,
 		"weights": {&"basic": 2, &"fast": 3, &"tank": 3},
 	},
 	{
 		"start_time": 755.0,
-		"spawn_interval": 0.30,
+		"spawn_interval": 0.16,
 		"max_enemies": 210,
 		"enemies_per_spawn": 1,
-		"health_multiplier": 3.90,
+		"health_multiplier": 6.42,
 		"weights": {&"basic": 2, &"fast": 3, &"tank": 3},
 	},
 	{
 		"start_time": 827.0,
-		"spawn_interval": 0.27,
+		"spawn_interval": 0.14,
 		"max_enemies": 220,
 		"enemies_per_spawn": 1,
-		"health_multiplier": 4.42,
+		"health_multiplier": 7.60,
 		"weights": {&"basic": 1, &"fast": 3, &"tank": 4},
 	},
 	{
 		"start_time": 900.0,
-		"spawn_interval": 0.25,
+		"spawn_interval": 0.12,
 		"max_enemies": 240,
 		"enemies_per_spawn": 1,
-		"health_multiplier": 5.00,
+		"health_multiplier": 9.00,
 		"weights": {&"basic": 1, &"fast": 3, &"tank": 4},
 	},
 ]

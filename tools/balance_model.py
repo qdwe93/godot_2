@@ -28,24 +28,24 @@ from __future__ import annotations
 
 import argparse
 
-# scripts/wave_data.gd 의 PHASES 와 같은 값이다. 바꿨으면 여기도 바꾼다.
-PHASES = [
-    # start, interval, max_enemies, per_spawn, hp_mult, weights
-    (0.0, 1.20, 40, 1, 1.00, {"basic": 1}),
-    (61.0, 0.93, 60, 1, 1.13, {"basic": 1}),
-    (126.0, 0.79, 70, 1, 1.28, {"basic": 4, "fast": 1}),
-    (193.0, 0.69, 90, 1, 1.45, {"basic": 4, "fast": 1}),
-    (261.0, 0.60, 100, 1, 1.64, {"basic": 4, "fast": 2}),
-    (330.0, 0.54, 120, 1, 1.86, {"basic": 4, "fast": 2}),
-    (400.0, 0.48, 130, 1, 2.10, {"basic": 3, "fast": 2, "tank": 1}),
-    (470.0, 0.43, 150, 1, 2.38, {"basic": 3, "fast": 2, "tank": 1}),
-    (541.0, 0.39, 160, 1, 2.69, {"basic": 3, "fast": 3, "tank": 2}),
-    (612.0, 0.36, 180, 1, 3.05, {"basic": 3, "fast": 3, "tank": 2}),
-    (683.0, 0.33, 190, 1, 3.45, {"basic": 2, "fast": 3, "tank": 3}),
-    (755.0, 0.30, 210, 1, 3.90, {"basic": 2, "fast": 3, "tank": 3}),
-    (827.0, 0.27, 220, 1, 4.42, {"basic": 1, "fast": 3, "tank": 4}),
-    (900.0, 0.25, 240, 1, 5.00, {"basic": 1, "fast": 3, "tank": 4}),
-]
+# 곡선은 **한 곳에서만** 정의한다.
+#
+# 예전에는 이 표를 wave_data.gd 와 balance_sim.py 양쪽에서 손으로 옮겨 적었다.
+# 세 벌이 있으면 언젠가 갈라지고, 갈라진 순간부터 이 도구의 계산은 게임과 무관한
+# 숫자가 된다. balance_sim 의 플랜에서 직접 가져온다.
+import importlib.util as _importlib_util
+from pathlib import Path as _Path
+
+_spec = _importlib_util.spec_from_file_location(
+    "balance_sim", _Path(__file__).resolve().parent / "balance_sim.py"
+)
+_balance_sim = _importlib_util.module_from_spec(_spec)
+_spec.loader.exec_module(_balance_sim)
+
+# 게임에 실제로 들어가 있는 곡선의 플랜 이름. wave_data.gd 를 바꿨으면 여기도 바꾼다.
+ACTIVE_PLAN = "m16"
+PHASES = _balance_sim.PLANS[ACTIVE_PLAN]["phases"]
+
 
 ENEMY_HP = {"basic": 10.0, "fast": 6.0, "tank": 40.0}
 

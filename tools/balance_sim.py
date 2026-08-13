@@ -395,14 +395,80 @@ M12B = make_plan(
 PLANS["m12b"] = M12B
 
 
+# --------------------------------------------------------------------------
+# M16 후보 — 카메라 도입으로 판이 1.9배 길어진 것을 되돌린다
+#
+# 실측 근거만 쓴다 (시뮬레이터의 절대 시간은 믿지 않는다, devlog 018 3절).
+#
+#   곡선 4.0/5.0 : 카메라 前 572~886초  ->  카메라 後 1166~1500+초   (약 1.9배)
+#   곡선 8.0/9.0 : 카메라 前 392초       ->  카메라 後 392 x 1.9 = 약 745초 예상
+#
+# 8.0/9.0 은 M12b 에서 한 번 시도했다가 "너무 어렵다"고 되돌린 값이다. 경계가
+# 없어져 도망칠 수 있게 된 지금은 그 어려움이 딱 상쇄된다는 것이 이 후보의 가설이다.
+# --------------------------------------------------------------------------
+
+M16 = make_plan(
+    label="M16 후보 (카메라 이후 재조정)",
+    phases=build_phases(14, 900.0, 0.83, 8.0, 9.0),
+    gem_value={"basic": 1.0, "fast": 1.0, "tank": 3.0},
+    upgrades={
+        "shotgun": (5, "shotgun"),
+        "orbital": (5, "orbital"),
+        "blade": (8, "damage"),
+        "gloves": (5, "cooldown"),
+        "heart": (5, "hp"),
+        "shoes": (5, "speed"),
+        "magnet": (3, "magnet"),
+        "crown": (5, "xp"),
+    },
+    blade_mult=1.30,
+)
+
+PLANS["m16"] = M16
+
+
 GREEDY = ["shotgun", "orbital", "blade", "gloves", "heart", "shoes", "magnet", "crown"]
+
+
+TAB = chr(9)  # GDScript 는 탭 들여쓰기다. 공백과 헷갈리지 않게 이름을 준다
+
+
+def emit_gdscript(phases: list) -> str:
+    """`scripts/wave_data.gd` 의 PHASES 블록을 그대로 만들어 낸다.
+
+    M12b 에서는 이 표를 손으로 옮겨 적었다. 14줄 x 6항목이라 옮겨 적는 과정에서
+    조용히 어긋날 여지가 있고, 그러면 "곡선은 생성한다"는 보장이 그 지점에서
+    깨진다. 여기서 찍어 붙여 넣으면 그럴 일이 없다.
+    """
+    lines = ["const PHASES: Array[Dictionary] = ["]
+    for start_time, interval, max_enemies, per_spawn, hp_mult, weights in phases:
+        weight_text = ", ".join(f'&"{key}": {value}' for key, value in weights.items())
+        lines.append(TAB + "{")
+        lines.append(f'{TAB}{TAB}"start_time": {start_time:.1f},')
+        lines.append(f'{TAB}{TAB}"spawn_interval": {interval:.2f},')
+        lines.append(f'{TAB}{TAB}"max_enemies": {max_enemies},')
+        lines.append(f'{TAB}{TAB}"enemies_per_spawn": {per_spawn},')
+        lines.append(f'{TAB}{TAB}"health_multiplier": {hp_mult:.2f},')
+        lines.append(f'{TAB}{TAB}"weights": {{{weight_text}}},')
+        lines.append(TAB + "},")
+    lines.append("]")
+    return chr(10).join(lines)
 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="한 판 시뮬레이션")
     parser.add_argument("--plan", default="current", choices=sorted(PLANS))
     parser.add_argument("--verbose", action="store_true")
+    parser.add_argument(
+        "--emit-gdscript",
+        action="store_true",
+        help="wave_data.gd 의 PHASES 블록을 그대로 찍는다. 손으로 옮겨 적지 않기 위한 것",
+    )
     args = parser.parse_args()
+
+    if args.emit_gdscript:
+        print(emit_gdscript(PLANS[args.plan]["phases"]))
+        return 0
 
     plan = PLANS[args.plan]
     print(f"[{plan['label']}]")
