@@ -20,13 +20,29 @@
 ### codex 위임 — 표준 호출
 
 ```powershell
-Get-Content <작업지시서.txt> -Raw | codex exec -C "C:\Workspaces\game_make\test_godot_2" -s workspace-write -c model_reasoning_effort="medium" 2>&1 | Select-Object -Last 40
+Get-Content <작업지시서.txt> -Raw | codex exec -C "C:\Workspaces\game_make\test_godot_2" -s workspace-write -m gpt-5.6-sol -c model_reasoning_effort="high" 2>&1 | Select-Object -Last 40
 ```
 
 - 긴 작업지시는 스크래치패드에 `.txt`로 쓴 뒤 파이프로 넘긴다 (PowerShell 이스케이프 문제 회피)
-- `model_reasoning_effort`: 단순 구현 `low`~`medium`, 까다로운 설계·디버깅 `high`~`xhigh` (config.toml 기본값은 `xhigh`)
-- 모델 기본값은 `gpt-5.6-sol`. 바꾸려면 `-m <모델명>`
+- 모델은 **`gpt-5.6-sol`**, `model_reasoning_effort`는 **`high` 이상**을 기본으로 쓴다 (`xhigh`도 좋다)
+- `low`~`medium`은 "이 문자열을 저 문자열로 바꿔라" 수준의 순수 기계적 작업에만 쓴다
 - **`-s workspace-write` 유지.** 아래 제약 참고
+
+#### ⚠️ 판단이 섞인 일에는 반드시 high 이상
+
+근거가 있다. 에셋 생성을 `medium`으로 돌렸더니 **자체 판정이 두 번 다 틀렸다.**
+
+| 시점 | codex 자체 판정 | 실제 측정 |
+|---|---|---|
+| M11b | 8장 전부 "통과" | 6장 실패 |
+| M15 | 5장 전부 "실패" | 3장 통과 |
+
+양방향으로 틀렸다는 게 핵심이다. "생성물이 규칙을 만족하는가" 같은 판단은
+`medium`으로는 신뢰할 수 없다.
+
+> 다만 **판정 자체는 어느 등급에서도 codex의 자기 보고가 아니라 측정 도구로 한다.**
+> 등급을 올리는 건 결과물의 품질을 위한 것이지 자체 판정을 믿기 위한 게 아니다.
+
 
 ### ⚠️ codex 제약 — 셸 실행 불가 (M0에서 확인)
 
