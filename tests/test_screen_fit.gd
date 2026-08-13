@@ -14,7 +14,7 @@ extends Node
 ##
 ## 두 문제 모두 유닛 테스트를 전부 통과한 상태에서 실기로만 드러났다.
 
-const EXPECTED_CASE_COUNT: int = 6
+const EXPECTED_CASE_COUNT: int = 7
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 
 var _passed: int = 0
@@ -47,6 +47,7 @@ func _ready() -> void:
 	await _case_shake_ignores_healing()
 	await _case_shake_has_minimum_interval()
 	_case_low_health_shows_on_player()
+	_case_level_up_ui_fits_and_is_tappable()
 
 	_main.free()
 	_finish()
@@ -195,6 +196,48 @@ func _case_low_health_shows_on_player() -> void:
 	var low: bool = bool(player.call(&"is_low_health"))
 	_record("low_health_shows_on_player", low and changed,
 		"is_low=%s overlay_alpha=%.2f" % [str(low).to_lower(), float(player.call(&"get_danger_overlay_alpha"))])
+
+
+## 레벨업 화면이 뷰포트를 덮고, 버튼이 손가락으로 누를 만한가.
+##
+## 실기 2차 테스트에서 나온 지적이다. M14 에서 배경·HUD·타이틀·게임오버를 전부
+## 앵커로 바꿨는데 **레벨업 UI 하나만 빠져 있었다.** Dimmer 가 1280 폭으로 고정돼
+## 있어 1600 폭 화면에서 오른쪽 320 단위에 게임이 그대로 비쳤다.
+##
+## 버튼 크기도 같이 잰다. 48 단위는 S21 에서 약 7mm 라 엄지로 누르면 빗나간다.
+func _case_level_up_ui_fits_and_is_tappable() -> void:
+	var level_up_ui: Node = _main.get_node_or_null("LevelUpUI")
+	if level_up_ui == null:
+		_record("level_up_ui_fits_and_is_tappable", false, "level_up_ui_missing")
+		return
+
+	var arena: Vector2 = Arena.get_size(_main)
+	var offenders: PackedStringArray = []
+
+	var dimmer: Control = level_up_ui.get_node_or_null("Dimmer") as Control
+	if dimmer == null:
+		offenders.append("dimmer(missing)")
+	elif dimmer.size.x < arena.x - 1.0 or dimmer.size.y < arena.y - 1.0:
+		offenders.append("dimmer(%.0fx%.0f)" % [dimmer.size.x, dimmer.size.y])
+
+	# 손가락 표적 하한. 이보다 작으면 실기에서 "누르기 어렵다"가 된다.
+	var minimum_touch_height: float = 90.0
+	for index in range(3):
+		var button: Control = level_up_ui.get_node_or_null("Choices/Choice%d" % index) as Control
+		if button == null:
+			offenders.append("choice%d(missing)" % index)
+			continue
+		if button.size.y < minimum_touch_height:
+			offenders.append("choice%d(h=%.0f)" % [index, button.size.y])
+		# 화면 가운데에 오는가. 고정 오프셋이면 넓은 화면에서 왼쪽으로 쏠린다.
+		var button_center_x: float = button.global_position.x + button.size.x * 0.5
+		if absf(button_center_x - arena.x * 0.5) > 8.0:
+			offenders.append("choice%d(cx=%.0f)" % [index, button_center_x])
+
+	_record("level_up_ui_fits_and_is_tappable", offenders.is_empty(),
+		"arena=(%.0f,%.0f) min_touch=%.0f %s" % [
+			arena.x, arena.y, minimum_touch_height,
+			"ok" if offenders.is_empty() else ",".join(offenders)])
 
 
 func _record(case_name: String, ok: bool, detail: String) -> void:
