@@ -1,6 +1,45 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/level_up_ui.gd" id="1_level_up_ui"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
+; 카드는 **불투명**해야 한다. 버튼 기본 스타일은 반투명이라 카드 한가운데로
+; 뒤의 게임 화면(화면 중앙에 고정된 주인공)이 그대로 비쳐 보였다.
+; 이 색은 docs/asset_gen 의 아이콘 프롬프트에 적어 둔 카드 배경색(#2E3440)과 같다.
+bg_color = Color(0.18, 0.2, 0.25, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.35, 0.39, 0.47, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card_hover"]
+bg_color = Color(0.24, 0.27, 0.33, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.83, 0.29, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card_pressed"]
+bg_color = Color(0.3, 0.34, 0.42, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.83, 0.29, 1)
+corner_radius_top_left = 12
+corner_radius_top_right = 12
+corner_radius_bottom_right = 12
+corner_radius_bottom_left = 12
 
 [node name="LevelUpUI" type="CanvasLayer"]
 script = ExtResource("1_level_up_ui")
@@ -74,6 +113,10 @@ theme_override_constants/separation = 30
 ; 카드 전체가 표적이다. 안의 라벨·아이콘은 mouse_filter = 2 로 클릭을 흘려보낸다.
 custom_minimum_size = Vector2(370, 460)
 layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_card")
+theme_override_styles/hover = SubResource("StyleBoxFlat_card_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_card_pressed")
+theme_override_styles/focus = SubResource("StyleBoxFlat_card_hover")
 
 [node name="Body" type="VBoxContainer" parent="Choices/Choice0"]
 layout_mode = 1
@@ -138,6 +181,10 @@ mouse_filter = 2
 [node name="Choice1" type="Button" parent="Choices"]
 custom_minimum_size = Vector2(370, 460)
 layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_card")
+theme_override_styles/hover = SubResource("StyleBoxFlat_card_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_card_pressed")
+theme_override_styles/focus = SubResource("StyleBoxFlat_card_hover")
 
 [node name="Body" type="VBoxContainer" parent="Choices/Choice1"]
 layout_mode = 1
@@ -202,6 +249,10 @@ mouse_filter = 2
 [node name="Choice2" type="Button" parent="Choices"]
 custom_minimum_size = Vector2(370, 460)
 layout_mode = 2
+theme_override_styles/normal = SubResource("StyleBoxFlat_card")
+theme_override_styles/hover = SubResource("StyleBoxFlat_card_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_card_pressed")
+theme_override_styles/focus = SubResource("StyleBoxFlat_card_hover")
 
 [node name="Body" type="VBoxContainer" parent="Choices/Choice2"]
 layout_mode = 1
