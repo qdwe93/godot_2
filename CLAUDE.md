@@ -60,6 +60,29 @@ PATH에 없으므로 항상 전체 경로로 호출한다.
 - 에디터(GUI): `C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64.exe`
 - CLI/헤드리스: `C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe` ← **자동화는 이걸 쓴다** (일반 exe는 콘솔에 stdout을 안 준다)
 
+### ffmpeg — 오디오 변환 (M20에서 설치)
+
+`winget install Gyan.FFmpeg` 로 넣었다. **PATH 에 잡히지 않으므로 전체 경로로 부른다**
+(winget 이 PATH 를 고쳤다고 하지만 이 도구가 띄우는 셸에는 반영되지 않는다).
+
+```powershell
+$ff = "C:\Users\x_xo_\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-9.0-full_build\bin"
+& "$ff\ffprobe.exe" -v error -show_entries "format=duration,bit_rate,size" -of default=nw=1 <파일>
+& "$ff\ffmpeg.exe" -y -v error -i <입력> -c:a libmp3lame -b:a 128k <출력.mp3>
+```
+
+이제 받아 온 음원을 **자르고·음량 맞추고·형식을 바꿀 수 있다.** 그전까지는 그게
+안 돼서 효과음을 `tools/gen_sfx.py` 로 직접 만들었다 (devlog 021 1절).
+직접 만든 소리를 굳이 갈아 끼울 이유는 없지만, 새 음원을 받아 쓸 길은 열렸다.
+
+배경음악 재인코딩 실측 (원본 5.62MB / VBR 194kbps / 4:03):
+
+| 설정 | 크기 |
+|---|---:|
+| 128kbps | 3.76MB |
+| 96kbps | 2.83MB |
+| 64kbps | 1.90MB |
+
 ### 임포트 (에셋·씬 추가 후 필수)
 
 ```powershell
