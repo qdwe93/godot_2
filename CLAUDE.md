@@ -240,7 +240,7 @@ python tools/balance_sim.py --plan m16 --emit-gdscript
 ## 전체 테스트 스위트 (한 번에 돌리기)
 
 ```powershell
-foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_player_damage","test_experience","test_level_up_ui","test_upgrades","test_upgrade_limits","test_new_weapons","test_waves","test_boss_and_separation","test_hud","test_game_flow","test_effects","test_scene_wiring","test_feedback","test_visual_hierarchy","test_power_growth","test_touch_joystick","test_screen_fit","test_camera_follow")) { $r = & "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" --quit-after 3600 "res://tests/$t.tscn" 2>&1 | Select-String -Pattern "TEST_RESULT|TEST_ERROR"; "$t => $r (exit=$LASTEXITCODE)" }
+foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_player_damage","test_experience","test_level_up_ui","test_upgrades","test_upgrade_limits","test_new_weapons","test_waves","test_boss_and_separation","test_hud","test_game_flow","test_effects","test_scene_wiring","test_feedback","test_visual_hierarchy","test_power_growth","test_touch_joystick","test_screen_fit","test_camera_follow","test_level_up_cards")) { $r = & "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" --quit-after 3600 "res://tests/$t.tscn" 2>&1 | Select-String -Pattern "TEST_RESULT|TEST_ERROR"; "$t => $r (exit=$LASTEXITCODE)" }
 ```
 
 | 스위트 | 케이스 | 검증 내용 |
@@ -265,6 +265,7 @@ foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_p
 | `test_touch_joystick` | 6 | **터치 조작** — 끌기 방향, 뗄 때 액션 해제, 데드존, 세기 비례, 두 번째 손가락, main.tscn 배선 |
 | `test_power_growth` | 8 | **성장 경로** — 칼날이 세 무기 전부에 적용, 기본값 기준 복리, 산탄 탄수·궤도구 피해 레벨링, `max_level=1` 회귀 방지, 체력 재생, 젬 값 전달 |
 | `test_screen_fit` | 7 | **실기 회귀** — 배경·HUD·패널이 뷰포트를 덮는가, 회복으로 안 흔들리는가, 흔들림 최소 간격, 저체력 표시, **레벨업 화면 덮개·버튼 크기·앵커** |
+| `test_level_up_cards` | 7 | **레벨업 카드** — 이름·설명이 라벨에서 갈라지는가, 별 개수 = `max_level`, 채워진 별 = 찍고 난 뒤 레벨, `New!` 는 미획득만, 슬롯 바가 전 업그레이드를 담는가, 보유 슬롯만 레벨 숫자, 카드 안 요소가 터치를 삼키지 않는가 |
 | `test_camera_follow` | 7 | **카메라와 무한 세계** — 카메라 활성, 주인공이 항상 화면 중앙, 가두기 없음, 적이 보이는 화면 둘레에서 스폰, 뒤처진 적 회수(`died` 미발생), 흔들림 대상이 카메라, 바닥 격자 타일 스냅 |
 
 > ⚠️ `test_enemy_spawn`은 **간헐적으로 1케이스가 실패**한다 (12회 중 1회 관측, 재현 8회 실패). 스폰 개수·추적 거리가 타이머 위상에 민감한 것으로 추정. 한 번 실패하면 재실행해 보고, 반복되면 허용 오차를 넓힐 것.
@@ -278,6 +279,28 @@ foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_p
 
 이 프로젝트에서 "정의는 있는데 게임에서 실행되지 않는" 버그가 3건 나왔다 (산탄·궤도구 미노출, `spawn_hit()` 호출처 0건, 보스 드랍 메서드 이름 불일치).
 전부 유닛 테스트를 통과했다. **그룹 이름·문자열 메서드·선택지 노출을 바꿨으면 `test_scene_wiring`을 돌린다.**
+
+### ⚠️ Godot enum 값을 기억으로 쓰지 말 것 (`process_mode` 만의 문제가 아니다)
+
+M17에서 레벨업 카드를 만들며 `expand_mode` / `stretch_mode` / `alignment` /
+`mouse_filter` / `size_flags_vertical` 다섯 개가 필요했다. 전부 **찍어서 확인했다.**
+틀려도 에러가 안 나고 배치만 이상해지는 종류라 눈으로는 원인을 못 찾는다.
+
+```powershell
+& "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make	est_godot_2" -s "res://tools/enum_probe.gd"
+```
+
+`tools/enum_probe.gd` 에 `extends SceneTree` 로 한 줄씩 `print` 하고 `quit()` 하면 된다.
+쓰고 나면 지운다. 확인된 값 몇 개:
+
+| 값 | 숫자 |
+|---|---|
+| `TextureRect.EXPAND_IGNORE_SIZE` | 1 |
+| `TextureRect.STRETCH_KEEP_ASPECT_CENTERED` | 5 |
+| `BoxContainer.ALIGNMENT_CENTER` | 1 |
+| `Control.MOUSE_FILTER_STOP / PASS / IGNORE` | 0 / 1 / 2 |
+| `Control.SIZE_EXPAND_FILL` | 3 |
+| `TextServer.AUTOWRAP_WORD_SMART` | 3 |
 
 ### 스프라이트를 바꿨으면 축소해서 재라
 
