@@ -241,14 +241,20 @@ func _test_volume_controls_reach_the_buses() -> void:
 	var zero_db: float = AudioServer.get_bus_volume_db(music_index)
 	_audio.set_muted(true)
 	var muted: bool = AudioServer.is_bus_mute(master_index)
+	# 범위 밖 요청은 매니저가 직접 막아야 한다. UI 쪽 clamp 에 기대면 API 를 다른
+	# 곳에서 부르는 순간 설계한 믹스보다 커진다.
+	_audio.set_music_volume(1.5)
+	var over_clamped: bool = is_equal_approx(_audio.get_music_volume(), 1.0)
+	_audio.set_music_volume(-0.5)
+	var under_clamped: bool = is_equal_approx(_audio.get_music_volume(), 0.0)
 
 	var expected_half_db: float = _audio.get_music_base_db() + linear_to_db(0.5)
 	var expected_quarter_db: float = _audio.get_sfx_base_db() + linear_to_db(0.25)
-	var passed: bool = is_equal_approx(half_db, expected_half_db) and is_equal_approx(quarter_db, expected_quarter_db) and is_finite(zero_db) and zero_db <= -80.0 and muted
+	var passed: bool = is_equal_approx(half_db, expected_half_db) and is_equal_approx(quarter_db, expected_quarter_db) and is_finite(zero_db) and zero_db <= -80.0 and muted and over_clamped and under_clamped
 	_audio.set_music_volume(original_music_volume)
 	_audio.set_sfx_volume(original_sfx_volume)
 	AudioServer.set_bus_mute(master_index, original_muted)
-	_record_case("volume_controls_reach_the_buses", passed, "half_db=%.3f quarter_db=%.3f zero_db=%.3f muted=%s" % [half_db, quarter_db, zero_db, muted])
+	_record_case("volume_controls_reach_the_buses", passed, "half_db=%.3f quarter_db=%.3f zero_db=%.3f muted=%s clamp=%s/%s" % [half_db, quarter_db, zero_db, muted, over_clamped, under_clamped])
 
 
 func _test_default_volume_is_full() -> void:
@@ -261,22 +267,29 @@ func _test_default_volume_is_full() -> void:
 	var music_db: float = AudioServer.get_bus_volume_db(music_index) if music_index >= 0 else INF
 	var music_volume: float = _audio.get_music_volume()
 	var sfx_volume: float = _audio.get_sfx_volume()
-	var passed: bool = is_equal_approx(music_volume, 1.0) and is_equal_approx(sfx_volume, 1.0) and is_equal_approx(music_db, _audio.get_music_base_db())
+	# **설계한 믹스**와 비교한다. `get_music_base_db()` 와 비교하면 그 값이 잘못
+	# 잡혔을 때 양쪽이 같이 틀려서 통과한다 (고장 주입에서 실제로 놓쳤다).
+	var designed_db: float = _read_layout_volume_db(&"Music")
+	var passed: bool = is_equal_approx(music_volume, 1.0) and is_equal_approx(sfx_volume, 1.0) and is_finite(designed_db) and is_equal_approx(music_db, designed_db)
 
 	_audio.set_music_volume(original_music_volume)
 	_audio.set_sfx_volume(original_sfx_volume)
 	_audio.save_settings()
-	_record_case("default_volume_is_full", passed, "music=%.3f sfx=%.3f bus_db=%.3f base_db=%.3f" % [music_volume, sfx_volume, music_db, _audio.get_music_base_db()])
+	_record_case("default_volume_is_full", passed, "music=%.3f sfx=%.3f bus_db=%.3f designed_db=%.3f" % [music_volume, sfx_volume, music_db, designed_db])
 
 
 func _test_volume_survives_a_reload() -> void:
 	var original_music_volume: float = _audio.get_music_volume()
 	var original_sfx_volume: float = _audio.get_sfx_volume()
+	# **한 번에 둘 다 바꾸면 안 된다.** `save_settings()` 는 두 값을 함께 쓰므로,
+	# 효과음 쪽 저장이 배경음악 값까지 같이 남긴다. 그래서 배경음악 저장을 통째로
+	# 지워도 이 케이스가 통과했다 (고장 주입에서 실제로 놓쳤다). 따로 확인한다.
 	_audio.set_music_volume(0.3)
+	_audio.load_settings()
+	var loaded_music: float = _audio.get_music_volume()
+
 	_audio.set_sfx_volume(0.7)
 	_audio.load_settings()
-
-	var loaded_music: float = _audio.get_music_volume()
 	var loaded_sfx: float = _audio.get_sfx_volume()
 	var passed: bool = is_equal_approx(loaded_music, 0.3) and is_equal_approx(loaded_sfx, 0.7)
 
@@ -322,7 +335,9 @@ func _test_volume_buttons_change_the_volume() -> void:
 	var after_volume: float = _audio.get_music_volume()
 	var after_percent: int = int(volume_settings.call("get_displayed_music_percent"))
 	var changed_by_step: bool = is_equal_approx(before_volume - after_volume, 0.1)
-	var display_followed: bool = before_percent - after_percent == 10 and after_percent == roundi(after_volume * 100.0)
+	# 바와 숫자를 **둘 다** 본다. 하나만 보면 다른 하나가 굳어 있어도 통과한다.
+	var after_text: String = str(volume_settings.call("get_displayed_music_text"))
+	var display_followed: bool = before_percent - after_percent == 10 and after_percent == roundi(after_volume * 100.0) and after_text == "%d%%" % after_percent
 
 	_audio.set_music_volume(1.0)
 	plus_button.pressed.emit()
@@ -336,7 +351,7 @@ func _test_volume_buttons_change_the_volume() -> void:
 	_audio.set_music_volume(original_music_volume)
 	_audio.save_settings()
 	var passed: bool = changed_by_step and display_followed and stayed_in_range
-	_record_case("volume_buttons_change_the_volume", passed, "before=%.3f/%d after=%.3f/%d upper=%.3f lower=%.3f" % [before_volume, before_percent, after_volume, after_percent, upper_volume, lower_volume])
+	_record_case("volume_buttons_change_the_volume", passed, "before=%.3f/%d after=%.3f/%d text=%s upper=%.3f lower=%.3f" % [before_volume, before_percent, after_volume, after_percent, after_text, upper_volume, lower_volume])
 
 
 func _test_volume_buttons_are_opaque_and_tappable() -> void:
@@ -355,9 +370,41 @@ func _test_volume_buttons_are_opaque_and_tappable() -> void:
 		if not large_enough or not opaque:
 			failures.append("%s(size=%s opaque=%s)" % [button.get_path(), button.custom_minimum_size, opaque])
 
-	var passed: bool = buttons.size() == 4 and failures.is_empty()
+	# 바도 화면을 덮는 요소다. 반투명이면 화면 한가운데 고정된 주인공이 그대로
+	# 비쳐 보인다 — 실제로 그랬고 캡처로만 발견했다.
+	var bars: Array[ProgressBar] = []
+	_collect_bars(volume_settings, bars)
+	for bar: ProgressBar in bars:
+		for style_name: StringName in [&"background", &"fill"]:
+			var style: StyleBox = bar.get_theme_stylebox(style_name)
+			var style_opaque: bool = style is StyleBoxFlat and is_equal_approx((style as StyleBoxFlat).bg_color.a, 1.0)
+			if not style_opaque:
+				failures.append("%s/%s(불투명 아님)" % [bar.get_path(), style_name])
+
+	var passed: bool = buttons.size() == 4 and bars.size() == 2 and failures.is_empty()
 	volume_settings.queue_free()
-	_record_case("volume_buttons_are_opaque_and_tappable", passed, "buttons=%d failures=%s" % [buttons.size(), failures])
+	_record_case("volume_buttons_are_opaque_and_tappable", passed, "buttons=%d bars=%d failures=%s" % [buttons.size(), bars.size(), failures])
+
+
+func _collect_bars(node: Node, bars: Array[ProgressBar]) -> void:
+	if node is ProgressBar:
+		bars.append(node as ProgressBar)
+	for child: Node in node.get_children():
+		_collect_bars(child, bars)
+
+
+## 버스 레이아웃 파일에서 직접 읽는다. 수치를 테스트에 하드코딩하면 믹스를 바꿀 때
+## 테스트가 막아선다 — 이 프로젝트에서 두 번 그랬다.
+func _read_layout_volume_db(bus_name: StringName) -> float:
+	var layout: Resource = load("res://default_bus_layout.tres")
+	if layout == null:
+		return NAN
+	for index: int in range(8):
+		var name_value: Variant = layout.get("bus/%d/name" % index)
+		if name_value != null and StringName(str(name_value)) == bus_name:
+			var db_value: Variant = layout.get("bus/%d/volume_db" % index)
+			return float(db_value) if db_value != null else NAN
+	return NAN
 
 
 func _collect_buttons(node: Node, buttons: Array[Button]) -> void:

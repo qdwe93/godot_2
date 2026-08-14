@@ -62,3 +62,13 @@ func get_displayed_music_percent() -> int:
 
 func get_displayed_sfx_percent() -> int:
 	return roundi(_sfx_bar.value)
+
+
+## 바와 숫자를 **따로** 내준다. 하나만 보면 다른 하나가 굳어 있는 것을 못 잡는다
+## (고장 주입에서 실제로 라벨 갱신을 지웠는데 통과했다).
+func get_displayed_music_text() -> String:
+	return _music_value_label.text
+
+
+func get_displayed_sfx_text() -> String:
+	return _sfx_value_label.text
