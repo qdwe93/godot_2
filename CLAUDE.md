@@ -62,14 +62,28 @@ PATH에 없으므로 항상 전체 경로로 호출한다.
 
 ### ffmpeg — 오디오 변환 (M20에서 설치)
 
-`winget install Gyan.FFmpeg` 로 넣었다. **PATH 에 잡히지 않으므로 전체 경로로 부른다**
-(winget 이 PATH 를 고쳤다고 하지만 이 도구가 띄우는 셸에는 반영되지 않는다).
+`winget install Gyan.FFmpeg` (9.0) 로 넣었다. **사용자 PATH 에 등록돼 있으므로 새로 연
+터미널에서는 그냥 `ffmpeg` / `ffprobe` 로 부르면 된다.**
 
 ```powershell
-$ff = "C:\Users\x_xo_\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-9.0-full_build\bin"
-& "$ff\ffprobe.exe" -v error -show_entries "format=duration,bit_rate,size" -of default=nw=1 <파일>
-& "$ff\ffmpeg.exe" -y -v error -i <입력> -c:a libmp3lame -b:a 128k <출력.mp3>
+ffprobe -v error -show_entries "format=duration,bit_rate,size" -of default=nw=1 <파일>
+ffmpeg -y -v error -i <입력> -c:a libmp3lame -b:a 128k <출력.mp3>
 ```
+
+> ⚠️ **이미 떠 있던 프로세스는 옛 PATH 를 그대로 물고 있다.** 설치 시점보다 먼저
+> 시작된 셸(이 자동화 도구가 띄우는 셸 포함)에서는 `ffmpeg` 을 못 찾는다.
+> **PATH 가 잘못된 게 아니라 환경이 낡은 것이다.** 그럴 때만 전체 경로를 쓴다:
+>
+> ```powershell
+> $ff = "C:\Users\x_xo_\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-9.0-full_build\bin"
+> & "$ff\ffmpeg.exe" -version
+> ```
+>
+> 확인은 레지스트리에서 PATH 를 다시 조립해 본다 (새 터미널이 볼 값):
+>
+> ```powershell
+> powershell -NoProfile -Command "$env:Path=[Environment]::GetEnvironmentVariable('Path','Machine')+';'+[Environment]::GetEnvironmentVariable('Path','User'); (Get-Command ffmpeg).Source"
+> ```
 
 이제 받아 온 음원을 **자르고·음량 맞추고·형식을 바꿀 수 있다.** 그전까지는 그게
 안 돼서 효과음을 `tools/gen_sfx.py` 로 직접 만들었다 (devlog 021 1절).
