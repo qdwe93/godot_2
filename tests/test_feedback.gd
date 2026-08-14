@@ -4,6 +4,7 @@ const EXPECTED_CASE_COUNT: int = 5
 const ENEMY_SCENE: PackedScene = preload("res://scenes/enemy.tscn")
 const PROJECTILE_SCRIPT: Script = preload("res://scripts/projectile.gd")
 const HIT_EFFECT_SCENE: PackedScene = preload("res://scenes/hit_effect.tscn")
+const HIT_EFFECT_SCRIPT: Script = preload("res://scripts/hit_effect.gd")
 const EFFECT_SPAWNER_SCRIPT: Script = preload("res://scripts/effect_spawner.gd")
 const HUD_SCENE: PackedScene = preload("res://scenes/hud.tscn")
 const DISABLED_PROCESS_MODE: int = 4
@@ -72,11 +73,22 @@ func _case_projectile_spawns_hit_effect() -> void:
 	enemies.add_child(enemy)
 	var projectile: Area2D = PROJECTILE_SCRIPT.new() as Area2D
 	fixture.add_child(projectile)
-	var before_count: int = effects.get_child_count()
+	# 이펙트 컨테이너의 **자식 수**를 세면 안 된다. M18에서 같은 명중이 피해 숫자도
+	# 함께 만들면서 자식이 2개가 됐고, 이 케이스가 "명중 이펙트가 안 생겼다"는
+	# 엉뚱한 실패로 바뀌었다. 세어야 하는 것은 **명중 이펙트가 생겼는가**다.
+	var before_count: int = _count_hit_effects(effects)
 	projectile.call(&"_on_body_entered", enemy)
-	var after_count: int = effects.get_child_count()
+	var after_count: int = _count_hit_effects(effects)
 	_record_case("projectile_spawns_hit_effect", after_count == before_count + 1, "before=%d after=%d" % [before_count, after_count])
 	await _dispose(fixture)
+
+
+func _count_hit_effects(container: Node) -> int:
+	var found: int = 0
+	for child in container.get_children():
+		if child.get_script() == HIT_EFFECT_SCRIPT:
+			found += 1
+	return found
 
 
 func _case_enemy_flashes_on_hit() -> void:

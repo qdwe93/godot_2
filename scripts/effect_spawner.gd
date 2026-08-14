@@ -8,10 +8,17 @@ class_name EffectSpawner
 const HIT_SCALE: float = 0.35
 const DEATH_SCALE: float = 0.55
 const DEATH_TINT: Color = Color(1.0, 0.62, 0.32, 1.0)
+const DAMAGE_NUMBER_SCENE: PackedScene = preload("res://scenes/damage_number.tscn")
+## 동시에 떠 있을 수 있는 피해 숫자 상한.
+##
+## 적이 200마리 넘게 나오고 산탄이 7발까지 늘어나므로 Label이 초당 수백 개씩
+## 생기는 상황에서 프레임이 무너지지 않도록, 읽을 수 없는 초과분은 만들지 않는다.
+const MAX_ACTIVE_DAMAGE_NUMBERS: int = 40
 
 var _effect_container: Node
 var _enemy_container: Node
 var _is_usable: bool = false
+var _active_damage_number_count: int = 0
 
 
 func _ready() -> void:
@@ -45,6 +52,37 @@ func spawn_death(at_position: Vector2, enemy_scale: float) -> Node:
 	return _spawn_effect(at_position, DEATH_TINT, scaled_size)
 
 
+func spawn_damage_number(at_position: Vector2, amount: float) -> Node:
+	if not _is_usable:
+		return null
+	if _active_damage_number_count >= MAX_ACTIVE_DAMAGE_NUMBERS:
+		return null
+
+	var damage_number: Node = DAMAGE_NUMBER_SCENE.instantiate()
+	if damage_number == null:
+		push_error("EffectSpawner: damage number scene failed to instantiate.")
+		return null
+	# 잘못된 씬 루트가 연결돼도 런타임 호출 오류가 연쇄적으로 나지 않게 여기서 막는다.
+	if not damage_number.has_method(&"configure"):
+		push_error("EffectSpawner: damage number scene root has no configure() method.")
+		damage_number.queue_free()
+		return null
+
+	damage_number.call(&"configure", at_position, amount)
+	_active_damage_number_count += 1
+	damage_number.connect(
+		&"tree_exited",
+		Callable(self, &"_on_damage_number_tree_exited"),
+		Object.CONNECT_ONE_SHOT
+	)
+	_effect_container.add_child(damage_number)
+	return damage_number
+
+
+func get_active_damage_number_count() -> int:
+	return _active_damage_number_count
+
+
 func _spawn_effect(at_position: Vector2, colour: Color, size_scale: float) -> Node:
 	if not _is_usable:
 		return null
@@ -67,6 +105,11 @@ func _spawn_effect(at_position: Vector2, colour: Color, size_scale: float) -> No
 
 func _on_enemy_entered_tree(enemy: Node) -> void:
 	_connect_enemy(enemy)
+
+
+func _on_damage_number_tree_exited() -> void:
+	# 예외적인 트리 정리 순서에서도 테스트용 카운터가 음수가 되지 않게 방어한다.
+	_active_damage_number_count = maxi(0, _active_damage_number_count - 1)
 
 
 func _connect_enemy(enemy: Node) -> void:

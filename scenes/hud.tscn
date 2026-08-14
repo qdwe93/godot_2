@@ -1,12 +1,9 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/hud.gd" id="1_hud"]
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_health_background"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar_background"]
 bg_color = Color(0.2, 0.2, 0.24, 1)
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_health_fill"]
-bg_color = Color(0.25, 0.8, 0.35, 1)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_experience_fill"]
 bg_color = Color(0.35, 0.6, 1, 1)
@@ -29,57 +26,63 @@ mouse_filter = 2
 color = Color(0.8, 0.05, 0.08, 1)
 modulate = Color(1, 1, 1, 0)
 
-[node name="HealthBar" type="ProgressBar" parent="."]
-offset_left = 20.0
-offset_top = 20.0
-offset_right = 260.0
-offset_bottom = 38.0
-show_percentage = false
-theme_override_styles/background = SubResource("StyleBoxFlat_health_background")
-theme_override_styles/fill = SubResource("StyleBoxFlat_health_fill")
-
-[node name="HealthLabel" type="Label" parent="."]
-offset_left = 268.0
-offset_top = 19.0
-offset_right = 380.0
-offset_bottom = 41.0
-text = "0/0"
-
+; 체력바는 주인공 발밑으로 옮겼다. HUD에도 두면 같은 정보를 중복 표시하게 된다.
 [node name="ExperienceBar" type="ProgressBar" parent="."]
-offset_left = 20.0
-offset_top = 46.0
-offset_right = 260.0
-offset_bottom = 56.0
+layout_mode = 1
+anchor_right = 1.0
+offset_left = 128.0
+offset_top = 122.0
+offset_right = -20.0
+offset_bottom = 146.0
 show_percentage = false
-theme_override_styles/background = SubResource("StyleBoxFlat_health_background")
+mouse_filter = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_bar_background")
 theme_override_styles/fill = SubResource("StyleBoxFlat_experience_fill")
 
 [node name="LevelLabel" type="Label" parent="."]
-offset_left = 268.0
-offset_top = 40.0
-offset_right = 380.0
-offset_bottom = 62.0
+layout_mode = 1
+offset_left = 20.0
+offset_top = 118.0
+offset_right = 120.0
+offset_bottom = 150.0
+theme_override_colors/font_color = Color(1, 0.83, 0.29, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 24
 text = "Lv.0"
+horizontal_alignment = 0
+vertical_alignment = 1
+mouse_filter = 2
 
 [node name="TimeLabel" type="Label" parent="."]
 layout_mode = 1
-; 화면 오른쪽 끝에 붙인다. 고정 오프셋(1140)이면 넓은 화면에서 가운데에 떠 버린다.
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -140.0
-offset_top = 20.0
-offset_right = -20.0
-offset_bottom = 44.0
-horizontal_alignment = 2
+; 밝은 적과 젬 위에서도 숫자가 배경에 녹지 않도록 굵은 검은 외곽선을 둔다.
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -180.0
+offset_top = 16.0
+offset_right = 180.0
+offset_bottom = 80.0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 10
+theme_override_font_sizes/font_size = 48
 text = "0:00"
+horizontal_alignment = 1
+vertical_alignment = 1
+mouse_filter = 2
 
 [node name="KillLabel" type="Label" parent="."]
 layout_mode = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -200.0
-offset_top = 48.0
+offset_left = -220.0
+offset_top = 24.0
 offset_right = -20.0
-offset_bottom = 72.0
-horizontal_alignment = 2
+offset_bottom = 58.0
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 6
+theme_override_font_sizes/font_size = 26
 text = "처치 0"
+horizontal_alignment = 2
+vertical_alignment = 1
+mouse_filter = 2

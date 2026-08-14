@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/player.gd" id="1_player"]
 [ext_resource type="Script" path="res://scripts/weapon.gd" id="2_weapon"]
@@ -7,6 +7,7 @@
 [ext_resource type="Script" path="res://scripts/shotgun.gd" id="5_shotgun"]
 [ext_resource type="PackedScene" path="res://scenes/orbital.tscn" id="6_orbital"]
 [ext_resource type="Texture2D" path="res://assets/sprites/player.png" id="7_player_sprite"]
+[ext_resource type="Script" path="res://scripts/player_health_bar.gd" id="8_player_health_bar"]
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_player"]
 radius = 36.0
@@ -16,6 +17,25 @@ radius = 36.0
 
 [sub_resource type="CircleShape2D" id="CircleShape2D_magnet"]
 radius = 100.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_health_background"]
+bg_color = Color(0.06, 0.06, 0.08, 0.85)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0, 0, 0.9)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_health_fill"]
+bg_color = Color(0.25, 0.8, 0.35, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
 
 [node name="Player" type="CharacterBody2D"]
 collision_layer = 1
@@ -44,6 +64,18 @@ scale = Vector2(0.28125, 0.28125)
 modulate = Color(1, 0.25, 0.25, 1)
 self_modulate = Color(1, 1, 1, 0)
 texture = ExtResource("7_player_sprite")
+
+[node name="HealthBar" type="ProgressBar" parent="."]
+script = ExtResource("8_player_health_bar")
+z_index = 10
+offset_left = -48.0
+offset_top = 48.0
+offset_right = 48.0
+offset_bottom = 60.0
+mouse_filter = 2
+theme_override_styles/background = SubResource("StyleBoxFlat_health_background")
+theme_override_styles/fill = SubResource("StyleBoxFlat_health_fill")
+show_percentage = false
 
 [node name="Camera2D" type="Camera2D" parent="."]
 ; M16 — 주인공을 화면 한가운데에 고정한다.

@@ -86,7 +86,10 @@ func _case_damage_updates_bar() -> void:
 	await get_tree().process_frame
 	var displayed: Dictionary = _hud.call("get_displayed_values")
 	var after: float = float(displayed.get("health", -1.0))
-	var health_bar: ProgressBar = _hud.get_node("HealthBar") as ProgressBar
+	# M18에서 체력바가 HUD 좌상단에서 **주인공 발밑**으로 옮겨 갔다. 레퍼런스와 같은
+	# 배치이고, 두 곳에 두면 같은 정보가 중복된다. 그래서 바를 찾을 곳도 주인공이다.
+	# HUD 는 여전히 체력을 추적한다 (위험 비네트와 사망 요약이 그 값을 쓴다).
+	var health_bar: ProgressBar = _player.get_node("HealthBar") as ProgressBar
 	var bar_value: float = health_bar.value
 	var passed: bool = is_equal_approx(before - after, damage) and is_equal_approx(bar_value, after)
 	_record_case("damage_updates_bar", passed, "before=%.2f after=%.2f damage=%.2f bar=%.2f" % [before, after, damage, bar_value])

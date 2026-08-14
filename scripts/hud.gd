@@ -4,14 +4,14 @@ extends CanvasLayer
 @export var level_system_path: NodePath
 @export var enemy_container_path: NodePath
 
-@onready var health_bar: ProgressBar = $HealthBar
-@onready var health_label: Label = $HealthLabel
 @onready var experience_bar: ProgressBar = $ExperienceBar
 @onready var danger_vignette: ColorRect = $DangerVignette
 @onready var level_label: Label = $LevelLabel
 @onready var time_label: Label = $TimeLabel
 @onready var kill_label: Label = $KillLabel
 
+# 체력바는 주인공 발밑으로 옮겼지만, 비네트와 게임 요약 API가 필요로 하므로
+# 현재 체력과 최대 체력 값의 추적은 HUD에 남겨 둔다.
 var _health: float = 0.0
 var _max_health: float = 0.0
 var _experience: float = 0.0
@@ -22,20 +22,15 @@ var _elapsed_time: float = 0.0
 var _timer_stopped: bool = false
 var _danger_state: bool = false
 var _danger_alpha: float = 0.0
-var _normal_health_fill_style: StyleBox
-var _danger_health_fill_style: StyleBoxFlat = StyleBoxFlat.new()
 
 const DANGER_HEALTH_RATIO: float = 0.3
 # 0.22였을 때 실기 스크린샷에서 화면이 통째로 붉게 물들어 적과 젬이 묻혔다.
 # 위험 표시의 주역은 이제 주인공의 빨간 깜빡임(player.gd)이고, 비네트는 가장자리에
 # 얇게 깔리는 보조 역할만 한다.
 const MAX_DANGER_ALPHA: float = 0.09
-const DANGER_COLOUR: Color = Color(0.95, 0.25, 0.25, 1.0)
 
 
 func _ready() -> void:
-	_normal_health_fill_style = health_bar.get_theme_stylebox(&"fill")
-	_danger_health_fill_style.bg_color = DANGER_COLOUR
 	_update_health_display()
 	_update_experience_display()
 	_update_time_display()
@@ -138,9 +133,6 @@ func _on_enemy_died(_enemy_position: Vector2) -> void:
 
 
 func _update_health_display() -> void:
-	health_bar.max_value = maxf(_max_health, 1.0)
-	health_bar.value = clampf(_health, 0.0, health_bar.max_value)
-	health_label.text = "%d/%d" % [roundi(_health), roundi(_max_health)]
 	_update_danger_display()
 
 
@@ -151,13 +143,8 @@ func _update_danger_display() -> void:
 	_danger_state = _max_health > 0.0 and health_ratio <= DANGER_HEALTH_RATIO
 	if _danger_state:
 		_danger_alpha = clampf((DANGER_HEALTH_RATIO - health_ratio) / DANGER_HEALTH_RATIO, 0.0, 1.0) * MAX_DANGER_ALPHA
-		health_bar.add_theme_stylebox_override(&"fill", _danger_health_fill_style)
-		health_label.add_theme_color_override(&"font_color", DANGER_COLOUR)
 	else:
 		_danger_alpha = 0.0
-		if _normal_health_fill_style != null:
-			health_bar.add_theme_stylebox_override(&"fill", _normal_health_fill_style)
-		health_label.remove_theme_color_override(&"font_color")
 	var vignette_modulate: Color = danger_vignette.modulate
 	vignette_modulate.a = _danger_alpha
 	danger_vignette.modulate = vignette_modulate

@@ -49,8 +49,11 @@ func _physics_process(delta: float) -> void:
 			continue
 		body.call(&"take_damage", damage)
 		var effect_spawner: Node = get_tree().get_first_node_in_group(&"effect_spawner")
-		if effect_spawner != null and effect_spawner.has_method(&"spawn_hit"):
-			effect_spawner.call(&"spawn_hit", global_position)
+		if effect_spawner != null:
+			if effect_spawner.has_method(&"spawn_hit"):
+				effect_spawner.call(&"spawn_hit", global_position)
+			if effect_spawner.has_method(&"spawn_damage_number"):
+				effect_spawner.call(&"spawn_damage_number", global_position, damage)
 		_last_hit_times[enemy_id] = _elapsed_time
 
 

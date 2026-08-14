@@ -42,7 +42,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 
 	_case_background_covers_viewport()
-	_case_hud_reaches_right_edge()
+	_case_hud_follows_screen_width()
 	_case_panels_cover_viewport()
 	await _case_shake_ignores_healing()
 	await _case_shake_has_minimum_interval()
@@ -78,25 +78,43 @@ func _case_background_covers_viewport() -> void:
 			arena.x, arena.y, rect.position.x, rect.position.y, rect.end.x, rect.end.y])
 
 
-## 오른쪽 위 HUD가 화면 오른쪽 끝을 따라가는가.
-## 고정 오프셋이면 넓은 화면에서 가운데에 떠 버린다.
-func _case_hud_reaches_right_edge() -> void:
+## HUD가 화면 폭을 따라가는가.
+##
+## 고정 오프셋이면 넓은 화면(S21 은 1600 단위)에서 오른쪽 요소가 가운데에 떠 버린다.
+## M18 에서 타이머가 우상단에서 **상단 한가운데**로 옮겨 갔으므로, 요소마다 따라가야
+## 하는 기준이 다르다. 셋을 한 자리에서 본다.
+func _case_hud_follows_screen_width() -> void:
 	var hud: Node = _main.get_node_or_null("HUD")
 	if hud == null:
-		_record("hud_reaches_right_edge", false, "hud_missing")
+		_record("hud_follows_screen_width", false, "hud_missing")
 		return
 	var arena: Vector2 = Arena.get_size(_main)
 	var offenders: PackedStringArray = []
-	for label_name in ["TimeLabel", "KillLabel"]:
-		var label: Control = hud.get_node_or_null(label_name) as Control
-		if label == null:
-			offenders.append("%s(missing)" % label_name)
+
+	# 오른쪽에 붙어 있어야 하는 것들. 화면 오른쪽 끝에서 이 거리 안이면 붙었다고 본다.
+	for right_name in ["KillLabel", "ExperienceBar"]:
+		var right_control: Control = hud.get_node_or_null(right_name) as Control
+		if right_control == null:
+			offenders.append("%s(missing)" % right_name)
 			continue
-		# 화면 오른쪽 끝에서 이 거리 안에 있어야 "오른쪽에 붙어 있다"고 본다.
-		var distance: float = arena.x - (label.position.x + label.size.x)
+		var distance: float = arena.x - (right_control.position.x + right_control.size.x)
 		if distance > 60.0:
-			offenders.append("%s(%.0fpx)" % [label_name, distance])
-	_record("hud_reaches_right_edge", offenders.is_empty(),
+			offenders.append("%s(%.0fpx)" % [right_name, distance])
+
+	# 타이머는 한가운데다. **앵커로 본다** — 헤드리스 뷰포트는 기준 해상도와 폭이
+	# 같아서, 왼쪽 고정 오프셋과 가운데 정렬이 우연히 같은 자리에 온다.
+	# 위치만 재면 실기에서만 드러나는 버그를 그대로 통과시킨다 (레벨업 UI 에서 겪었다).
+	var time_label: Control = hud.get_node_or_null("TimeLabel") as Control
+	if time_label == null:
+		offenders.append("TimeLabel(missing)")
+	else:
+		if not (is_equal_approx(time_label.anchor_left, 0.5) and is_equal_approx(time_label.anchor_right, 0.5)):
+			offenders.append("TimeLabel(앵커 %.2f~%.2f)" % [time_label.anchor_left, time_label.anchor_right])
+		var centre_x: float = time_label.global_position.x + time_label.size.x * 0.5
+		if absf(centre_x - arena.x * 0.5) > 8.0:
+			offenders.append("TimeLabel(cx=%.0f)" % centre_x)
+
+	_record("hud_follows_screen_width", offenders.is_empty(),
 		"arena_width=%.0f %s" % [arena.x, "ok" if offenders.is_empty() else ",".join(offenders)])
 
 

@@ -7,6 +7,83 @@ layer = 10
 process_mode = 3
 script = ExtResource("1_game_flow")
 
+[node name="PauseButton" type="Button" parent="."]
+visible = false
+layout_mode = 1
+offset_left = 20.0
+offset_top = 20.0
+offset_right = 108.0
+offset_bottom = 108.0
+
+[node name="BarLeft" type="ColorRect" parent="PauseButton"]
+layout_mode = 1
+offset_left = 26.0
+offset_top = 22.0
+offset_right = 38.0
+offset_bottom = 66.0
+mouse_filter = 2
+color = Color(0.92, 0.94, 1, 1)
+
+[node name="BarRight" type="ColorRect" parent="PauseButton"]
+layout_mode = 1
+offset_left = 50.0
+offset_top = 22.0
+offset_right = 62.0
+offset_bottom = 66.0
+mouse_filter = 2
+color = Color(0.92, 0.94, 1, 1)
+
+[node name="PausePanel" type="Control" parent="."]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 0
+
+[node name="Background" type="ColorRect" parent="PausePanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.02, 0.03, 0.07, 0.82)
+mouse_filter = 2
+
+[node name="PauseLabel" type="Label" parent="PausePanel"]
+layout_mode = 1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -300.0
+offset_top = 190.0
+offset_right = 300.0
+offset_bottom = 265.0
+theme_override_font_sizes/font_size = 52
+text = "일시정지"
+horizontal_alignment = 1
+mouse_filter = 2
+
+[node name="ResumeButton" type="Button" parent="PausePanel"]
+layout_mode = 1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -170.0
+offset_top = 330.0
+offset_right = 170.0
+offset_bottom = 424.0
+theme_override_font_sizes/font_size = 30
+text = "계속하기"
+
+[node name="PauseRestartButton" type="Button" parent="PausePanel"]
+layout_mode = 1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -170.0
+offset_top = 444.0
+offset_right = 170.0
+offset_bottom = 538.0
+theme_override_font_sizes/font_size = 30
+text = "다시 시작"
+
 [node name="TitlePanel" type="Control" parent="."]
 layout_mode = 3
 anchors_preset = 15
