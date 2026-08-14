@@ -58,6 +58,7 @@ func try_fire() -> Node:
 	container.add_child(projectile)
 	var travel_direction := (target.global_position - global_position).normalized()
 	projectile.call("launch", global_position, travel_direction)
+	Audio.play_sfx(&"shoot")
 	if _cooldown_timer != null:
 		_cooldown_timer.start()
 	return projectile

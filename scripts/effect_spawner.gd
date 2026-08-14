@@ -44,6 +44,9 @@ func _ready() -> void:
 
 
 func spawn_hit(at_position: Vector2) -> Node:
+	# 명중음도 이펙트와 같은 깔때기를 탄다. 초당 수십 번 불리므로
+	# 솎아내기는 AudioManager 의 min_interval 이 맡는다.
+	Audio.play_sfx(&"hit")
 	return _spawn_effect(at_position, Color.WHITE, HIT_SCALE)
 
 

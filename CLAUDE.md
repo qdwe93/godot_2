@@ -275,7 +275,7 @@ python tools/balance_sim.py --plan m16 --emit-gdscript
 ## 전체 테스트 스위트 (한 번에 돌리기)
 
 ```powershell
-foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_player_damage","test_experience","test_level_up_ui","test_upgrades","test_upgrade_limits","test_new_weapons","test_waves","test_boss_and_separation","test_hud","test_game_flow","test_effects","test_scene_wiring","test_feedback","test_visual_hierarchy","test_power_growth","test_touch_joystick","test_screen_fit","test_camera_follow","test_level_up_cards","test_hud_props")) { $r = & "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" --quit-after 3600 "res://tests/$t.tscn" 2>&1 | Select-String -Pattern "TEST_RESULT|TEST_ERROR"; "$t => $r (exit=$LASTEXITCODE)" }
+foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_player_damage","test_experience","test_level_up_ui","test_upgrades","test_upgrade_limits","test_new_weapons","test_waves","test_boss_and_separation","test_hud","test_game_flow","test_effects","test_scene_wiring","test_feedback","test_visual_hierarchy","test_power_growth","test_touch_joystick","test_screen_fit","test_camera_follow","test_level_up_cards","test_hud_props","test_audio")) { $r = & "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" --quit-after 3600 "res://tests/$t.tscn" 2>&1 | Select-String -Pattern "TEST_RESULT|TEST_ERROR"; "$t => $r (exit=$LASTEXITCODE)" }
 ```
 
 | 스위트 | 케이스 | 검증 내용 |
@@ -303,6 +303,7 @@ foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_p
 | `test_level_up_cards` | 8 | **레벨업 카드** — 이름·설명이 라벨에서 갈라지는가, 별 개수 = `max_level`, 채워진 별 = 찍고 난 뒤 레벨, `New!` 는 미획득만, 슬롯 바가 전 업그레이드를 담는가, 보유 슬롯만 레벨 숫자, 카드 안 요소가 터치를 삼키지 않는가 |
 | `test_camera_follow` | 7 | **카메라와 무한 세계** — 카메라 활성, 주인공이 항상 화면 중앙, 가두기 없음, 적이 보이는 화면 둘레에서 스폰, 뒤처진 적 회수(`died` 미발생), 흔들림 대상이 카메라, 바닥 격자 타일 스냅 |
 | `test_hud_props` | 16 | **HUD 소품** — 일시정지 버튼 크기·타이틀에서 숨김·걸고 푸는 것까지, 레벨업 중 일시정지 거부, 타이머 중앙 앵커, 메뉴 버튼 불투명, 발밑 체력바가 **처음부터 가득**·주인공을 따라감·위험 색 양방향, 피해 숫자 값·상한·수명, **투사체 명중이 실제로 숫자를 부르는가**, 레벨업 화면이 HUD 를 덮는가, HUD 시계가 일시정지를 존중하는가 |
+| `test_audio` | 13 | **오디오** — Music/SFX 버스 존재와 라우팅, **효과음 파일과 등록표가 서로를 덮는가**, 전부 재생됨, 반복 호출 솎아내기와 해제, 재생기 풀 상한, 모르는 이름 무시, 배경음악 반복·정지, **일시정지 중에도 소리가 남**, 음량 조절이 버스에 닿는가 |
 
 > ⚠️ `test_enemy_spawn`은 **간헐적으로 1케이스가 실패**한다 (12회 중 1회 관측, 재현 8회 실패). 스폰 개수·추적 거리가 타이머 위상에 민감한 것으로 추정. 한 번 실패하면 재실행해 보고, 반복되면 허용 오차를 넓힐 것.
 

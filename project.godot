@@ -14,6 +14,13 @@ config/name="Tangtang Survivors"
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.7", "GL Compatibility")
 
+[autoload]
+
+; 오디오는 씬을 갈아 끼워도(재시작) 끊기면 안 되므로 autoload 다.
+; process_mode 는 audio_manager.gd 가 ALWAYS 로 올린다 — 일시정지 중에도
+; 배경음악이 흐르고 레벨업 효과음이 나야 한다.
+Audio="*res://scripts/audio_manager.gd"
+
 [display]
 
 window/size/viewport_width=1280
@@ -21,6 +28,12 @@ window/size/viewport_height=720
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
 window/handheld/orientation="landscape"
+
+[audio]
+
+; 기본 경로와 같지만 일부러 적어 둔다. 파일이 사라지면 조용히 Master 하나짜리
+; 레이아웃으로 되돌아가는데, 그러면 음악/효과음 음량 조절이 통째로 죽는다.
+buses/default_bus_layout="res://default_bus_layout.tres"
 
 [input]
 

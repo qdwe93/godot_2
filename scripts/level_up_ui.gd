@@ -76,6 +76,7 @@ func _show_next_level_up() -> void:
 			_fill_card(choice_index, upgrade_id)
 		_refresh_slot_bar()
 		visible = true
+		Audio.play_sfx(&"level_up")
 		get_tree().paused = true
 		print("LEVELUP_UI_SHOWN level=%d choices=%s" % [level_number, _choice_text()])
 		return

@@ -72,12 +72,14 @@ func enable_auto_play() -> void:
 	auto_play_enabled = true
 	title_panel.hide()
 	get_tree().paused = false
+	Audio.play_music()
 	print("FLOW_STARTED auto=true")
 
 
 func start_game() -> void:
 	title_panel.hide()
 	get_tree().paused = false
+	Audio.play_music()
 	print("FLOW_STARTED auto=%s" % str(auto_play_enabled).to_lower())
 
 
@@ -141,6 +143,8 @@ func is_pause_menu_visible() -> bool:
 
 func _on_player_died() -> void:
 	pause_panel.hide()
+	# 사망음이 들리도록 음악을 비운다. 재시작하면 start_game() 이 다시 켠다.
+	Audio.stop_music()
 	var elapsed: float = 0.0
 	var kills: int = 0
 	var level: int = 0

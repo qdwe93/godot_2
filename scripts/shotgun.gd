@@ -65,6 +65,9 @@ func try_fire() -> Array[Node]:
 		projectile.call(&"launch", global_position, pellet_direction)
 		projectiles.append(projectile)
 
+	# 펠릿마다가 아니라 한 발사에 한 번. 7발이면 7번 겹쳐 소음이 된다.
+	Audio.play_sfx(&"shoot")
+
 	return projectiles
 
 

@@ -131,6 +131,9 @@ func take_damage(amount: float) -> void:
 
 	if health <= 0.0:
 		_die()
+		return
+	# 죽는 프레임에는 피격음을 내지 않는다. 사망음과 겹쳐 둘 다 뭉개진다.
+	Audio.play_sfx(&"hurt")
 
 
 func advance_invincibility(seconds: float) -> void:
@@ -170,6 +173,7 @@ func _die() -> void:
 		return
 
 	_is_dead = true
+	Audio.play_sfx(&"death")
 	died.emit()
 	hide()
 	set_physics_process(false)
