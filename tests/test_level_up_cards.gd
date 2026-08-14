@@ -11,7 +11,7 @@ extends Node
 ##   - 슬롯 바는 `UpgradeData` 의 정의에서 만들어진다. 업그레이드를 추가하면 슬롯도 늘어야 한다
 ##   - 카드 안의 라벨·아이콘이 터치를 먹으면 안 된다 — 이건 에러 없이 조용히 깨지는 종류다
 
-const EXPECTED_CASE_COUNT: int = 8
+const EXPECTED_CASE_COUNT: int = 17
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const STAR_FULL_PATH: String = "res://assets/ui/star_full.png"
 
@@ -25,6 +25,8 @@ var _manager: Node = null
 
 
 func _ready() -> void:
+	# 레벨업 UI가 트리를 멈춘 동안에도 입력 결과와 정리를 계속 검사한다.
+	process_mode = Node.PROCESS_MODE_ALWAYS
 	_main = MAIN_SCENE.instantiate()
 	if _main == null:
 		print("TEST_ERROR setup_failed main_scene_could_not_instantiate")
@@ -49,6 +51,15 @@ func _ready() -> void:
 	_case_slot_shows_owned_level()
 	_case_card_children_do_not_eat_taps()
 	_case_every_upgrade_has_a_loadable_icon()
+	await _case_real_input_path_reaches_the_number_keys()
+	_case_number_keys_pick_the_matching_card()
+	_case_number_keys_do_nothing_while_hidden()
+	_case_number_key_past_the_last_choice_is_ignored()
+	await _case_first_card_takes_focus()
+	_case_confetti_survives_the_pause()
+	_case_confetti_is_drawn_and_not_dust()
+	_case_confetti_covers_the_screen_width()
+	_case_key_badges_match_the_number_keys()
 
 	_main.free()
 	_finish()
@@ -246,6 +257,220 @@ func _case_every_upgrade_has_a_loadable_icon() -> void:
 			"ok" if offenders.is_empty() else ",".join(offenders)])
 
 
+## Viewport 에 넣은 실제 입력이 _unhandled_key_input 까지 도달하는가.
+## 테스트 훅만 부르면 핸들러 등록 자체가 빠진 결함을 잡지 못한다.
+func _case_real_input_path_reaches_the_number_keys() -> void:
+	var choice_ids: Array[StringName] = _show_level_up_for_testing()
+	if choice_ids.is_empty():
+		_record("real_input_path_reaches_the_number_keys", false, "choices=0 화면을 띄우지 못했다")
+		_hide_level_up_for_testing()
+		return
+	var expected_id: StringName = choice_ids[0]
+	var history_before: int = _chosen_history_size()
+	_ui.set(&"last_choice", &"")
+	get_viewport().push_input(_number_key_event(1))
+	await get_tree().process_frame
+	var last_choice: StringName = StringName(_ui.get(&"last_choice"))
+	var history_after: int = _chosen_history_size()
+	var reached: bool = last_choice == expected_id and history_after == history_before + 1
+	var detail: String = "display=%s choices=%d expected=%s last=%s history=%d->%d" % [DisplayServer.get_name(), choice_ids.size(), expected_id, last_choice, history_before, history_after]
+	# 헤드리스에서 SKIP 으로 빠지는 도피로를 두지 마라. `push_input` 은 헤드리스에서
+	# **동작한다** (측정했다). 도피로가 있으면 배선이 진짜로 끊겼을 때 —
+	# `_unhandled_key_input` 이라는 가상 함수 이름을 잘못 적는 실수는 에러가 안 난다 —
+	# 케이스가 FAIL 이 아니라 SKIP 으로 내려앉아 스위트가 초록불을 준다.
+	# 실제로 고장 주입에서 그렇게 놓쳤다.
+	_record("real_input_path_reaches_the_number_keys", reached, detail)
+	_hide_level_up_for_testing()
+
+
+func _case_number_keys_pick_the_matching_card() -> void:
+	var choice_ids: Array[StringName] = _show_level_up_for_testing()
+	if choice_ids.size() < 2:
+		_record("number_keys_pick_the_matching_card", false, "choices=%d 두 번째 선택지 없음" % choice_ids.size())
+		_hide_level_up_for_testing()
+		return
+	var expected_id: StringName = choice_ids[1]
+	_ui.set(&"last_choice", &"")
+	_ui.call(&"feed_key_event_for_testing", _number_key_event(2))
+	var last_choice: StringName = StringName(_ui.get(&"last_choice"))
+	_record("number_keys_pick_the_matching_card", last_choice == expected_id,
+		"choices=%s expected_index=1 expected=%s last=%s" % [choice_ids, expected_id, last_choice])
+	_hide_level_up_for_testing()
+
+
+func _case_number_keys_do_nothing_while_hidden() -> void:
+	_hide_level_up_for_testing()
+	var history_before: int = _chosen_history_size()
+	var signal_counts: Array[int] = [0]
+	var signal_counter: Callable = func(_upgrade_id: StringName) -> void:
+		signal_counts[0] += 1
+	_ui.connect(&"upgrade_chosen", signal_counter)
+	_ui.call(&"feed_key_event_for_testing", _number_key_event(1))
+	var history_after: int = _chosen_history_size()
+	if _ui.is_connected(&"upgrade_chosen", signal_counter):
+		_ui.disconnect(&"upgrade_chosen", signal_counter)
+	_record("number_keys_do_nothing_while_hidden",
+		history_after == history_before and signal_counts[0] == 0,
+		"visible=%s history=%d->%d signals=%d" % [bool(_ui.get(&"visible")), history_before, history_after, signal_counts[0]])
+
+
+func _case_number_key_past_the_last_choice_is_ignored() -> void:
+	var isolated_main: Node = MAIN_SCENE.instantiate()
+	if isolated_main == null:
+		_record("number_key_past_the_last_choice_is_ignored", false,
+			"선택지 2개용 메인 씬을 만들지 못함")
+		return
+
+	_manager.remove_from_group(&"upgrade_manager")
+	add_child(isolated_main)
+	var level_up_ui: Node = isolated_main.get_node_or_null("LevelUpUI")
+	var manager: Node = isolated_main.get_node_or_null("UpgradeManager")
+	if level_up_ui == null or manager == null:
+		_record("number_key_past_the_last_choice_is_ignored", false,
+			"선택지 2개용 UI 또는 업그레이드 매니저를 찾지 못함")
+		_dispose_level_up_fixture(isolated_main)
+		return
+
+	for upgrade_id in UpgradeData.get_all_ids():
+		if upgrade_id == &"shoes" or upgrade_id == &"heart":
+			continue
+		var definition: Dictionary = UpgradeData.get_definition(upgrade_id)
+		var max_level: int = int(definition.get("max_level", 0))
+		for level_index in range(max_level):
+			manager.call(&"_on_upgrade_chosen", upgrade_id)
+
+	level_up_ui.call(&"_on_leveled_up", 1)
+	var choice_values: Variant = level_up_ui.call(&"get_choice_ids")
+	var choice_count: int = choice_values.size() if choice_values is Array else -1
+	if choice_count != 2:
+		_record_skip("number_key_past_the_last_choice_is_ignored",
+			"선택지를 2개로 만들지 못함 choices=%d" % choice_count)
+		_dispose_level_up_fixture(isolated_main)
+		return
+
+	var history_value: Variant = level_up_ui.get(&"chosen_history")
+	var history_before: int = history_value.size() if history_value is Array else -1
+	var signal_counts: Array[int] = [0]
+	var signal_counter: Callable = func(_upgrade_id: StringName) -> void:
+		signal_counts[0] += 1
+	level_up_ui.connect(&"upgrade_chosen", signal_counter)
+	level_up_ui.call(&"feed_key_event_for_testing", _number_key_event(3))
+	history_value = level_up_ui.get(&"chosen_history")
+	var history_after: int = history_value.size() if history_value is Array else -1
+	var stayed_visible: bool = bool(level_up_ui.get(&"visible"))
+	if level_up_ui.is_connected(&"upgrade_chosen", signal_counter):
+		level_up_ui.disconnect(&"upgrade_chosen", signal_counter)
+	_record("number_key_past_the_last_choice_is_ignored",
+		history_after == history_before and signal_counts[0] == 0 and stayed_visible,
+		"choices=%d pressed=3 history=%d->%d signals=%d visible=%s" % [choice_count, history_before, history_after, signal_counts[0], stayed_visible])
+	_dispose_level_up_fixture(isolated_main)
+
+
+func _case_first_card_takes_focus() -> void:
+	var choice_ids: Array[StringName] = _show_level_up_for_testing()
+	await get_tree().process_frame
+	var first_card: Button = _ui.get_node_or_null("Choices/Choice0") as Button
+	var focused: bool = first_card != null and first_card.has_focus()
+	_record("first_card_takes_focus", not choice_ids.is_empty() and focused,
+		"choices=%d card_found=%s focused=%s" % [choice_ids.size(), first_card != null, focused])
+	_hide_level_up_for_testing()
+
+
+func _case_confetti_survives_the_pause() -> void:
+	var confetti: CPUParticles2D = _ui.get_node_or_null("Confetti") as CPUParticles2D
+	var choice_ids: Array[StringName] = _show_level_up_for_testing()
+	var mode: int = confetti.process_mode if confetti != null else -1
+	var emitting_while_shown: bool = confetti != null and confetti.emitting
+	var paused_while_shown: bool = get_tree().paused
+	if not choice_ids.is_empty():
+		_ui.call(&"choose", 0)
+	var emitting_after_choice: bool = confetti != null and confetti.emitting
+	_record("confetti_survives_the_pause",
+		confetti != null and mode == Node.PROCESS_MODE_ALWAYS and paused_while_shown and emitting_while_shown and not emitting_after_choice,
+		"found=%s mode=%d expected_mode=%d paused=%s shown_emitting=%s after_choice_emitting=%s choices=%d" % [confetti != null, mode, Node.PROCESS_MODE_ALWAYS, paused_while_shown, emitting_while_shown, emitting_after_choice, choice_ids.size()])
+	_hide_level_up_for_testing()
+
+
+func _case_confetti_is_drawn_and_not_dust() -> void:
+	var confetti: CPUParticles2D = _ui.get_node_or_null("Confetti") as CPUParticles2D
+	var texture: Texture2D = confetti.texture if confetti != null else null
+	var width: int = texture.get_width() if texture != null else -1
+	var height: int = texture.get_height() if texture != null else -1
+	var has_ramp: bool = confetti != null and confetti.color_initial_ramp != null
+	_record("confetti_is_drawn_and_not_dust",
+		confetti != null and texture != null and has_ramp and width != height,
+		"found=%s texture=%s size=%dx%d ramp=%s" % [confetti != null, texture != null, width, height, has_ramp])
+
+
+func _case_confetti_covers_the_screen_width() -> void:
+	var confetti: CPUParticles2D = _ui.get_node_or_null("Confetti") as CPUParticles2D
+	var arena_size: Vector2 = Arena.get_size(_ui)
+	var emission_width: float = confetti.emission_rect_extents.x * 2.0 if confetti != null else -1.0
+	_record("confetti_covers_the_screen_width",
+		confetti != null and emission_width >= arena_size.x,
+		"emission_width=%.1f arena_width=%.1f extents_x=%.1f" % [emission_width, arena_size.x, confetti.emission_rect_extents.x if confetti != null else -1.0])
+
+
+func _case_key_badges_match_the_number_keys() -> void:
+	var offenders: PackedStringArray = []
+	var observed: PackedStringArray = []
+	for index: int in range(3):
+		var badge: Label = _ui.get_node_or_null("Choices/Choice%d/KeyBadge" % index) as Label
+		var expected_text: String = str(index + 1)
+		var actual_text: String = badge.text if badge != null else "<없음>"
+		var mouse_filter: int = badge.mouse_filter if badge != null else -1
+		observed.append("%d:%s/filter=%d" % [index, actual_text, mouse_filter])
+		if badge == null or actual_text != expected_text or mouse_filter != Control.MOUSE_FILTER_IGNORE:
+			offenders.append("Choice%d(expected=%s actual=%s filter=%d)" % [index, expected_text, actual_text, mouse_filter])
+	_record("key_badges_match_the_number_keys", offenders.is_empty(),
+		"badges=[%s] offenders=[%s]" % [",".join(observed), ",".join(offenders)])
+
+
+func _show_level_up_for_testing() -> Array[StringName]:
+	_ui.call(&"_on_leveled_up", _chosen_history_size() + 2)
+	var choice_values: Variant = _ui.call(&"get_choice_ids")
+	var choice_ids: Array[StringName] = []
+	if choice_values is Array:
+		for value: Variant in choice_values:
+			choice_ids.append(StringName(value))
+	return choice_ids
+
+
+func _hide_level_up_for_testing() -> void:
+	_ui.set(&"visible", false)
+	var confetti: CPUParticles2D = _ui.get_node_or_null("Confetti") as CPUParticles2D
+	if confetti != null:
+		confetti.emitting = false
+	get_tree().paused = false
+
+
+func _dispose_level_up_fixture(isolated_main: Node) -> void:
+	get_tree().paused = false
+	if is_instance_valid(isolated_main):
+		isolated_main.free()
+	if is_instance_valid(_manager) and not _manager.is_in_group(&"upgrade_manager"):
+		_manager.add_to_group(&"upgrade_manager")
+
+
+func _chosen_history_size() -> int:
+	var history_value: Variant = _ui.get(&"chosen_history")
+	return history_value.size() if history_value is Array else -1
+
+
+func _number_key_event(choice_number: int) -> InputEventKey:
+	var event: InputEventKey = InputEventKey.new()
+	event.pressed = true
+	event.echo = false
+	match choice_number:
+		1:
+			event.keycode = KEY_1
+		2:
+			event.keycode = KEY_2
+		3:
+			event.keycode = KEY_3
+	return event
+
+
 func _descendants(node: Node) -> Array[Node]:
 	var found: Array[Node] = []
 	for child in node.get_children():
@@ -262,3 +487,9 @@ func _record(case_name: String, ok: bool, detail: String) -> void:
 	else:
 		_failed += 1
 		print("TEST_CASE %s FAIL %s" % [case_name, detail])
+
+
+func _record_skip(case_name: String, detail: String) -> void:
+	_recorded += 1
+	_skipped += 1
+	print("TEST_CASE %s SKIP %s" % [case_name, detail])

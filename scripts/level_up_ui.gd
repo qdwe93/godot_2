@@ -27,9 +27,29 @@ var chosen_history: Array[StringName] = []
 var _level_system: Node
 var _pending_levels: Array[int] = []
 var _choice_ids: Array[StringName] = []
+var _confetti: CPUParticles2D = null
 
 
 func _ready() -> void:
+	_confetti = get_node_or_null("Confetti") as CPUParticles2D
+	if _confetti != null:
+		var confetti_gradient: Gradient = Gradient.new()
+		confetti_gradient.offsets = PackedFloat32Array([0.0, 0.25, 0.5, 0.75, 1.0])
+		confetti_gradient.colors = PackedColorArray([
+			Color(1.0, 0.83, 0.29, 1.0),
+			Color(0.25, 0.9, 0.85, 1.0),
+			Color(1.0, 0.42, 0.67, 1.0),
+			Color(0.55, 0.9, 0.35, 1.0),
+			Color(1.0, 0.55, 0.24, 1.0),
+		])
+		# CPUParticles2D 는 GPU 쪽과 달리 **텍스처가 아니라 Gradient 를 그대로** 받는다.
+		# 입자마다 이 램프에서 색을 하나 무작위로 뽑기 때문에 색종이가 된다.
+		# 램프를 안 주면 전부 흰색이라 '색종이'가 성립하지 않는다.
+		_confetti.color_initial_ramp = confetti_gradient
+		var arena_size: Vector2 = Arena.get_size(self)
+		_confetti.position = Vector2(arena_size.x * 0.5, -24.0)
+		_confetti.emission_rect_extents = Vector2(arena_size.x * 0.5, 4.0)
+
 	_level_system = get_node_or_null(level_system_path)
 	if _level_system == null:
 		push_error("LevelUpUI: level_system_path did not resolve: %s" % level_system_path)
@@ -54,6 +74,31 @@ func _on_leveled_up(new_level: int) -> void:
 		_show_next_level_up()
 
 
+func _unhandled_key_input(event: InputEvent) -> void:
+	if not visible:
+		return
+	var key_event: InputEventKey = event as InputEventKey
+	if key_event == null or not key_event.pressed or key_event.echo:
+		return
+	var choice_index: int = -1
+	match key_event.keycode:
+		KEY_1, KEY_KP_1:
+			choice_index = 0
+		KEY_2, KEY_KP_2:
+			choice_index = 1
+		KEY_3, KEY_KP_3:
+			choice_index = 2
+	if choice_index < 0 or choice_index >= _choice_ids.size():
+		return
+	choose(choice_index)
+	get_viewport().set_input_as_handled()
+
+
+## 테스트 이음매 — 헤드리스에서도 실제 숫자키 처리 경로를 직접 태운다.
+func feed_key_event_for_testing(event: InputEvent) -> void:
+	_unhandled_key_input(event)
+
+
 func _show_next_level_up() -> void:
 	while not _pending_levels.is_empty():
 		var level_number: int = _pending_levels.pop_front()
@@ -65,6 +110,8 @@ func _show_next_level_up() -> void:
 
 		if available.is_empty():
 			visible = false
+			if _confetti != null:
+				_confetti.emitting = false
 			print("LEVELUP_UI_SKIPPED level=%d" % level_number)
 			continue
 
@@ -76,12 +123,22 @@ func _show_next_level_up() -> void:
 			_fill_card(choice_index, upgrade_id)
 		_refresh_slot_bar()
 		visible = true
+		if _confetti != null:
+			_confetti.restart()
+			_confetti.emitting = true
+		for choice_index in range(choice_count):
+			var button: Button = get_node("Choices/Choice%d" % choice_index)
+			if button.visible:
+				button.grab_focus()
+				break
 		Audio.play_sfx(&"level_up")
 		get_tree().paused = true
 		print("LEVELUP_UI_SHOWN level=%d choices=%s" % [level_number, _choice_text()])
 		return
 
 	visible = false
+	if _confetti != null:
+		_confetti.emitting = false
 	get_tree().paused = false
 
 
@@ -211,6 +268,8 @@ func choose(index: int) -> void:
 	last_choice = chosen_id
 	chosen_history.append(chosen_id)
 	visible = false
+	if _confetti != null:
+		_confetti.emitting = false
 	emit_signal(&"upgrade_chosen", chosen_id)
 	print("LEVELUP_UI_CHOSEN id=%s queued=%d" % [chosen_id, _pending_levels.size()])
 	if _pending_levels.is_empty():

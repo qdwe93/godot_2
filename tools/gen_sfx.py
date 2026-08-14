@@ -1,4 +1,4 @@
-"""효과음 5종을 생성한다 (16bit mono 44.1kHz WAV).
+"""효과음 6종을 생성한다 (16bit mono 44.1kHz WAV).
 
 **왜 직접 만드는가.** CC0 팩을 받아 쓰면 출처·라이선스를 계속 따라다녀야 하고,
 받은 음원의 길이·음량이 제각각이라 게임 안에서 다시 맞춰야 한다. 여기서 만든
@@ -85,6 +85,14 @@ def hit():
     return _mix(out, _tone(0.05, 620.0, 380.0, 0.12, math.sin, attack=0.001, release=0.02))
 
 
+def pickup():
+    """젬 획득 — 한꺼번에 수십 번 불려도 소음이 되지 않도록 아주 짧고 작게 만든다."""
+    return _mix(
+        _tone(0.05, 880.0, 1400.0, 0.16, math.sin, attack=0.001, release=0.018),
+        _tone(0.05, 1760.0, 2800.0, 0.035, math.sin, attack=0.001, release=0.018),
+    )
+
+
 def hurt():
     """주인공 피격 — 낮고 거칠게. 무적 시간이 있어 자주 나지 않는다."""
     total = int(0.22 * RATE)
@@ -124,6 +132,7 @@ def main():
     for name, maker in (
         ("shoot.wav", shoot),
         ("hit.wav", hit),
+        ("pickup.wav", pickup),
         ("hurt.wav", hurt),
         ("level_up.wav", level_up),
         ("death.wav", death),

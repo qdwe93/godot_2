@@ -1,9 +1,10 @@
 extends Node
 
-const EXPECTED_CASE_COUNT: int = 19
+const EXPECTED_CASE_COUNT: int = 21
 const ENEMY_SCENE: PackedScene = preload("res://scenes/enemy.tscn")
 const PROJECTILE_SCENE: PackedScene = preload("res://scenes/projectile.tscn")
 const PLAYER_SCENE: PackedScene = preload("res://scenes/player.tscn")
+const XP_GEM_SCENE: PackedScene = preload("res://scenes/xp_gem.tscn")
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const VOLUME_SETTINGS_SCENE: PackedScene = preload("res://scenes/volume_settings.tscn")
 const WEAPON_SCRIPT: Script = preload("res://scripts/weapon.gd")
@@ -12,6 +13,13 @@ var _passed: int = 0
 var _failed: int = 0
 var _skipped: int = 0
 var _audio: AudioManager
+
+
+class ExperienceTarget extends Node2D:
+	var received_experience: float = 0.0
+
+	func add_experience(amount: float) -> void:
+		received_experience += amount
 
 
 func _ready() -> void:
@@ -51,6 +59,8 @@ func _run_cases() -> void:
 	_test_volume_buttons_change_the_volume()
 	_test_volume_buttons_are_opaque_and_tappable()
 	await _test_firing_calls_the_sound()
+	await _test_collecting_a_gem_calls_the_sound()
+	_test_pickup_is_the_quietest_and_throttled_sound()
 	await _test_damage_and_death_call_the_sounds()
 	await _test_game_start_and_death_drive_the_music()
 	await _test_volume_ui_is_in_the_pause_menu()
@@ -74,6 +84,8 @@ func _record_missing_autoload_failures() -> void:
 		"volume_buttons_change_the_volume",
 		"volume_buttons_are_opaque_and_tappable",
 		"firing_calls_the_sound",
+		"collecting_a_gem_calls_the_sound",
+		"pickup_is_the_quietest_and_throttled_sound",
 		"damage_and_death_call_the_sounds",
 		"game_start_and_death_drive_the_music",
 		"volume_ui_is_in_the_pause_menu",
@@ -449,6 +461,57 @@ func _test_firing_calls_the_sound() -> void:
 	enemy.queue_free()
 	projectile_container.queue_free()
 	_record_case("firing_calls_the_sound", fired and shoot_count == 1, "fired=%s shoot_count=%d" % [fired, shoot_count])
+
+
+func _test_collecting_a_gem_calls_the_sound() -> void:
+	var target: ExperienceTarget = ExperienceTarget.new()
+	add_child(target)
+	target.global_position = Vector2.ZERO
+
+	var gem: Area2D = XP_GEM_SCENE.instantiate() as Area2D
+	var gem_created: bool = gem != null
+	if not gem_created:
+		var received_before_cleanup: float = target.received_experience
+		_record_case("collecting_a_gem_calls_the_sound", false,
+			"gem_created=false pickup_count=%d experience=%.3f" % [_audio.get_play_count(&"pickup"), received_before_cleanup])
+		target.queue_free()
+		return
+	add_child(gem)
+	gem.global_position = target.global_position
+	gem.set(&"target", target)
+
+	# 직전 케이스의 재생 시각까지 지워, 획득음 솎기가 배선 검사를 가리지 않게 한다.
+	_audio.reset_counters()
+	# physics_frame 신호는 노드들의 _physics_process 직전에 오므로, 두 번째 신호에서
+	# 첫 번째 물리 틱이 실제로 젬 수집을 수행한 결과를 읽는다.
+	await get_tree().physics_frame
+	await get_tree().physics_frame
+	var pickup_count: int = int(_audio.get_play_count(&"pickup"))
+	var received_experience: float = target.received_experience
+
+	if is_instance_valid(gem):
+		gem.queue_free()
+	target.queue_free()
+	_record_case("collecting_a_gem_calls_the_sound",
+		gem_created and pickup_count == 1 and received_experience > 0.0,
+		"gem_created=%s pickup_count=%d experience=%.3f" % [gem_created, pickup_count, received_experience])
+
+
+func _test_pickup_is_the_quietest_and_throttled_sound() -> void:
+	var pickup_definition: Dictionary = AudioManager.SFX_LIBRARY[&"pickup"]
+	var pickup_interval: float = float(pickup_definition.get("min_interval", 0.0))
+	var pickup_volume: float = float(pickup_definition.get("volume_db", INF))
+	var minimum_volume: float = INF
+	var volumes: PackedStringArray = []
+	for key: Variant in AudioManager.SFX_LIBRARY.keys():
+		var sound_name: StringName = StringName(key)
+		var definition: Dictionary = AudioManager.SFX_LIBRARY[sound_name]
+		var volume_db: float = float(definition.get("volume_db", INF))
+		minimum_volume = minf(minimum_volume, volume_db)
+		volumes.append("%s=%.1f" % [sound_name, volume_db])
+	var passed: bool = pickup_interval > 0.0 and pickup_volume == minimum_volume
+	_record_case("pickup_is_the_quietest_and_throttled_sound", passed,
+		"interval=%.3f pickup_db=%.1f minimum_db=%.1f library=[%s]" % [pickup_interval, pickup_volume, minimum_volume, ",".join(volumes)])
 
 
 func _test_damage_and_death_call_the_sounds() -> void:

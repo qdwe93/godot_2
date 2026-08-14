@@ -9,6 +9,7 @@ const SETTINGS_PATH: String = "user://settings.cfg"
 const SFX_LIBRARY: Dictionary = {
 	&"shoot":    {"path": "res://assets/audio/sfx/shoot.wav",    "volume_db": -9.0,  "min_interval": 0.05, "pitch_jitter": 0.08},
 	&"hit":      {"path": "res://assets/audio/sfx/hit.wav",      "volume_db": -13.0, "min_interval": 0.04, "pitch_jitter": 0.12},
+	&"pickup":   {"path": "res://assets/audio/sfx/pickup.wav",   "volume_db": -16.0, "min_interval": 0.07, "pitch_jitter": 0.14},
 	&"hurt":     {"path": "res://assets/audio/sfx/hurt.wav",     "volume_db": -4.0,  "min_interval": 0.15, "pitch_jitter": 0.05},
 	&"level_up": {"path": "res://assets/audio/sfx/level_up.wav", "volume_db": -3.0,  "min_interval": 0.0,  "pitch_jitter": 0.0},
 	&"death":    {"path": "res://assets/audio/sfx/death.wav",    "volume_db": -2.0,  "min_interval": 0.0,  "pitch_jitter": 0.0},

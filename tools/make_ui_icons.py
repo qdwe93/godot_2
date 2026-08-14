@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""레벨업 카드에 쓰는 UI 조각 생성 (별 등급, 빈 슬롯).
+"""레벨업 화면에 쓰는 UI 조각 생성 (별 등급, 빈 슬롯, 색종이).
 
 왜 코드로 그리는가
 ------------------
@@ -34,6 +34,11 @@ SLOT_EMPTY = (42, 47, 58, 255)
 SLOT_EMPTY_EDGE = (90, 98, 114, 255)
 
 OUTPUT_DIR = Path(__file__).resolve().parent.parent / "assets" / "ui"
+
+# 색종이 한 조각. **흰색으로 그린다** — CPUParticles2D 가 color_initial_ramp 의
+# 색을 곱해서 입히기 때문이다. 여기에 색을 칠하면 두 색이 곱해져 탁해진다.
+CONFETTI_WIDTH = 12
+CONFETTI_HEIGHT = 20
 
 
 def star_points(centre: float, outer: float, inner: float) -> list:
@@ -77,6 +82,25 @@ def draw_empty_slot() -> Image.Image:
     return canvas.resize((SIZE, SIZE), Image.LANCZOS)
 
 
+def draw_confetti() -> Image.Image:
+    """색종이 한 조각 — 세로로 긴 직사각형.
+
+    **정사각형이면 안 된다.** 파티클에 각속도를 줘도 정사각형은 돌아가는 것이
+    눈에 안 보인다. 처음에 텍스처 없이(=1x1 흰 사각형) 넣었더니 화면에 먼지가
+    낀 것처럼 보였다. 가로세로 비가 있어야 뒤집히는 것이 읽히고 그제서야
+    '색종이'가 된다.
+    """
+    scale = 4
+    canvas = Image.new("RGBA", (CONFETTI_WIDTH * scale, CONFETTI_HEIGHT * scale), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(canvas)
+    draw.rounded_rectangle(
+        [0, 0, CONFETTI_WIDTH * scale - 1, CONFETTI_HEIGHT * scale - 1],
+        radius=2 * scale,
+        fill=(255, 255, 255, 255),
+    )
+    return canvas.resize((CONFETTI_WIDTH, CONFETTI_HEIGHT), Image.LANCZOS)
+
+
 def main() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     outputs = {
@@ -84,9 +108,10 @@ def main() -> None:
         "star_empty.png": draw_star(STAR_EMPTY, STAR_EMPTY_EDGE),
         "slot_empty.png": draw_empty_slot(),
     }
+    outputs["confetti.png"] = draw_confetti()
     for name, image in outputs.items():
         image.save(OUTPUT_DIR / name)
-        print(f"wrote {OUTPUT_DIR / name} ({SIZE}x{SIZE})")
+        print(f"wrote {OUTPUT_DIR / name} ({image.width}x{image.height})")
 
 
 if __name__ == "__main__":

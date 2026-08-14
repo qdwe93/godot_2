@@ -30,6 +30,8 @@ var is_invincible: bool = false
 const DANGER_HEALTH_RATIO: float = 0.3
 const DANGER_BLINK_COLOUR: Color = Color(1.0, 0.25, 0.25)
 const DANGER_BLINK_SPEED: float = 6.0
+const INVINCIBLE_BLINK_INTERVAL: float = 0.1
+const INVINCIBLE_BLINK_DIM_ALPHA: float = 0.3
 
 ## 그림에 칠해진 기준 색. 스프라이트가 텍스처가 되면서 노드에서 읽을 수 없게 됐으므로
 ## 여기에 명시한다. docs/ASSETS.md 3-0절 표의 플레이어 색과 같아야 한다.
@@ -57,8 +59,8 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
-	_poll_magnet_area()
 	_update_invincibility(delta)
+	_poll_magnet_area()
 	if _is_dead:
 		return
 
@@ -137,14 +139,30 @@ func take_damage(amount: float) -> void:
 
 
 func advance_invincibility(seconds: float) -> void:
-	_invincibility_remaining = maxf(_invincibility_remaining - seconds, 0.0)
-	is_invincible = _invincibility_remaining > 0.0
+	_update_invincibility(seconds)
 
 
 func _update_invincibility(delta: float) -> void:
 	if _invincibility_remaining > 0.0:
 		_invincibility_remaining = maxf(_invincibility_remaining - delta, 0.0)
 	is_invincible = _invincibility_remaining > 0.0
+	if not is_invincible:
+		_set_sprite_alpha(1.0)
+		return
+	var blink_step: int = int(_invincibility_remaining / INVINCIBLE_BLINK_INTERVAL)
+	_set_sprite_alpha(INVINCIBLE_BLINK_DIM_ALPHA if blink_step % 2 == 0 else 1.0)
+
+
+func _set_sprite_alpha(alpha: float) -> void:
+	if _sprite == null:
+		return
+	var tint: Color = _sprite.self_modulate
+	tint.a = alpha
+	_sprite.self_modulate = tint
+
+
+func get_sprite_alpha() -> float:
+	return _sprite.self_modulate.a if _sprite != null else 1.0
 
 
 ## M16에서 `_clamp_to_screen()` 을 없앴다.
@@ -173,6 +191,7 @@ func _die() -> void:
 		return
 
 	_is_dead = true
+	_set_sprite_alpha(1.0)
 	Audio.play_sfx(&"death")
 	died.emit()
 	hide()

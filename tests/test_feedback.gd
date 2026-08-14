@@ -1,7 +1,9 @@
 extends Node
 
-const EXPECTED_CASE_COUNT: int = 5
+const EXPECTED_CASE_COUNT: int = 8
 const ENEMY_SCENE: PackedScene = preload("res://scenes/enemy.tscn")
+const PLAYER_SCENE: PackedScene = preload("res://scenes/player.tscn")
+const PLAYER_SCRIPT: Script = preload("res://scripts/player.gd")
 const PROJECTILE_SCRIPT: Script = preload("res://scripts/projectile.gd")
 const HIT_EFFECT_SCENE: PackedScene = preload("res://scenes/hit_effect.tscn")
 const HIT_EFFECT_SCRIPT: Script = preload("res://scripts/hit_effect.gd")
@@ -42,7 +44,7 @@ func _ready() -> void:
 
 
 func _run_tests() -> void:
-	if ENEMY_SCENE == null or PROJECTILE_SCRIPT == null or HIT_EFFECT_SCENE == null or EFFECT_SPAWNER_SCRIPT == null or HUD_SCENE == null:
+	if ENEMY_SCENE == null or PLAYER_SCENE == null or PROJECTILE_SCRIPT == null or HIT_EFFECT_SCENE == null or EFFECT_SPAWNER_SCRIPT == null or HUD_SCENE == null:
 		print("TEST_ERROR setup_failed required feedback resource could not be loaded")
 		_finish()
 		return
@@ -51,6 +53,9 @@ func _run_tests() -> void:
 	await _case_enemy_flash_restores_colour()
 	await _case_hud_enters_danger_state()
 	await _case_hud_leaves_danger_state()
+	await _case_invincibility_blinks_the_sprite()
+	await _case_invincibility_restores_alpha_exactly()
+	await _case_danger_blink_does_not_fight_invincibility()
 	_finish()
 
 
@@ -143,6 +148,100 @@ func _case_hud_leaves_danger_state() -> void:
 	var danger_alpha: float = float(hud.call(&"get_danger_alpha"))
 	_record_case("hud_leaves_danger_state", not danger_state and danger_alpha == 0.0, "state=%s alpha=%.3f" % [danger_state, danger_alpha])
 	await _dispose(fixture)
+
+
+func _case_invincibility_blinks_the_sprite() -> void:
+	var player: CharacterBody2D = PLAYER_SCENE.instantiate() as CharacterBody2D
+	player.set(&"health_regen", 0.0)
+	add_child(player)
+	player.call(&"take_damage", 1.0)
+
+	var observed_alphas: Array[float] = []
+	var sample_limit: int = _invincibility_sample_limit(player)
+	var sampled_frames: int = 0
+	for _sample_index: int in range(sample_limit):
+		if not bool(player.get(&"is_invincible")):
+			break
+		await get_tree().physics_frame
+		sampled_frames += 1
+		_append_unique_alpha(observed_alphas, float(player.call(&"get_sprite_alpha")))
+	var minimum_alpha: float = _minimum_alpha(observed_alphas)
+	_record_case("invincibility_blinks_the_sprite",
+		observed_alphas.size() >= 2 and minimum_alpha < 1.0,
+		"samples=%d limit=%d distinct=%d values=%s minimum=%.3f" % [sampled_frames, sample_limit, observed_alphas.size(), observed_alphas, minimum_alpha])
+	await _dispose(player)
+
+
+func _case_invincibility_restores_alpha_exactly() -> void:
+	var player: CharacterBody2D = PLAYER_SCENE.instantiate() as CharacterBody2D
+	player.set(&"health_regen", 0.0)
+	add_child(player)
+	player.call(&"take_damage", 1.0)
+
+	var saw_dim_alpha: bool = false
+	var minimum_alpha: float = 1.0
+	for _sample_index: int in range(_invincibility_sample_limit(player)):
+		if not bool(player.get(&"is_invincible")):
+			break
+		await get_tree().physics_frame
+		var alpha: float = float(player.call(&"get_sprite_alpha"))
+		minimum_alpha = minf(minimum_alpha, alpha)
+		if alpha < 1.0:
+			saw_dim_alpha = true
+			break
+	var invincibility_time: float = float(player.get(&"invincibility_time"))
+	player.call(&"advance_invincibility", invincibility_time + 1.0)
+	var restored_alpha: float = float(player.call(&"get_sprite_alpha"))
+	var still_invincible: bool = bool(player.get(&"is_invincible"))
+	_record_case("invincibility_restores_alpha_exactly",
+		saw_dim_alpha and not still_invincible and restored_alpha == 1.0,
+		"saw_dim=%s minimum=%.3f invincible=%s restored=%.9f" % [saw_dim_alpha, minimum_alpha, still_invincible, restored_alpha])
+	await _dispose(player)
+
+
+func _case_danger_blink_does_not_fight_invincibility() -> void:
+	var player: CharacterBody2D = PLAYER_SCENE.instantiate() as CharacterBody2D
+	player.set(&"health_regen", 0.0)
+	add_child(player)
+	var maximum_health: float = float(player.get(&"max_health"))
+	var player_constants: Dictionary = PLAYER_SCRIPT.get_script_constant_map()
+	var danger_ratio: float = float(player_constants.get(&"DANGER_HEALTH_RATIO", 0.0))
+	var target_health: float = maximum_health * danger_ratio * 0.5
+	player.call(&"take_damage", maximum_health - target_health)
+
+	var sprite_alphas: Array[float] = []
+	var danger_alphas: Array[float] = []
+	_append_unique_alpha(sprite_alphas, float(player.call(&"get_sprite_alpha")))
+	_append_unique_alpha(danger_alphas, float(player.call(&"get_danger_overlay_alpha")))
+	var sample_limit: int = _invincibility_sample_limit(player)
+	for _sample_index: int in range(sample_limit):
+		if not bool(player.get(&"is_invincible")):
+			break
+		await get_tree().physics_frame
+		_append_unique_alpha(sprite_alphas, float(player.call(&"get_sprite_alpha")))
+		_append_unique_alpha(danger_alphas, float(player.call(&"get_danger_overlay_alpha")))
+	var actual_ratio: float = float(player.get(&"health")) / maximum_health
+	_record_case("danger_blink_does_not_fight_invincibility",
+		actual_ratio <= danger_ratio and sprite_alphas.size() >= 2 and danger_alphas.size() >= 2,
+		"ratio=%.3f threshold=%.3f sprite_distinct=%d values=%s danger_distinct=%d values=%s" % [actual_ratio, danger_ratio, sprite_alphas.size(), sprite_alphas, danger_alphas.size(), danger_alphas])
+	await _dispose(player)
+
+
+func _invincibility_sample_limit(player: Node) -> int:
+	var invincibility_time: float = float(player.get(&"invincibility_time"))
+	return maxi(4, ceili(invincibility_time * float(Engine.physics_ticks_per_second)) + 4)
+
+
+func _append_unique_alpha(values: Array[float], alpha: float) -> void:
+	if not values.has(alpha):
+		values.append(alpha)
+
+
+func _minimum_alpha(values: Array[float]) -> float:
+	var minimum: float = INF
+	for alpha: float in values:
+		minimum = minf(minimum, alpha)
+	return minimum
 
 
 func _create_hud_fixture() -> Node:
