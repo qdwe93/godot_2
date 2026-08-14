@@ -287,7 +287,7 @@ M17에서 레벨업 카드를 만들며 `expand_mode` / `stretch_mode` / `alignm
 틀려도 에러가 안 나고 배치만 이상해지는 종류라 눈으로는 원인을 못 찾는다.
 
 ```powershell
-& "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make	est_godot_2" -s "res://tools/enum_probe.gd"
+& "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" -s "res://tools/enum_probe.gd"
 ```
 
 `tools/enum_probe.gd` 에 `extends SceneTree` 로 한 줄씩 `print` 하고 `quit()` 하면 된다.
