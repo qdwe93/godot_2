@@ -1,10 +1,11 @@
 extends Node
 
-const EXPECTED_CASE_COUNT: int = 13
+const EXPECTED_CASE_COUNT: int = 19
 const ENEMY_SCENE: PackedScene = preload("res://scenes/enemy.tscn")
 const PROJECTILE_SCENE: PackedScene = preload("res://scenes/projectile.tscn")
 const PLAYER_SCENE: PackedScene = preload("res://scenes/player.tscn")
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
+const VOLUME_SETTINGS_SCENE: PackedScene = preload("res://scenes/volume_settings.tscn")
 const WEAPON_SCRIPT: Script = preload("res://scripts/weapon.gd")
 
 var _passed: int = 0
@@ -44,9 +45,15 @@ func _run_cases() -> void:
 	_test_music_loops_and_can_be_stopped()
 	await _test_music_survives_pause()
 	_test_volume_controls_reach_the_buses()
+	_test_default_volume_is_full()
+	_test_volume_survives_a_reload()
+	_test_broken_settings_fall_back_to_default()
+	_test_volume_buttons_change_the_volume()
+	_test_volume_buttons_are_opaque_and_tappable()
 	await _test_firing_calls_the_sound()
 	await _test_damage_and_death_call_the_sounds()
 	await _test_game_start_and_death_drive_the_music()
+	await _test_volume_ui_is_in_the_pause_menu()
 
 
 func _record_missing_autoload_failures() -> void:
@@ -61,9 +68,15 @@ func _record_missing_autoload_failures() -> void:
 		"music_loops_and_can_be_stopped",
 		"music_survives_pause",
 		"volume_controls_reach_the_buses",
+		"default_volume_is_full",
+		"volume_survives_a_reload",
+		"broken_settings_fall_back_to_default",
+		"volume_buttons_change_the_volume",
+		"volume_buttons_are_opaque_and_tappable",
 		"firing_calls_the_sound",
 		"damage_and_death_call_the_sounds",
 		"game_start_and_death_drive_the_music",
+		"volume_ui_is_in_the_pause_menu",
 	]
 	for case_name: String in case_names:
 		_record_case(case_name, false, "Audio autoload missing")
@@ -216,8 +229,8 @@ func _test_volume_controls_reach_the_buses() -> void:
 		_record_case("volume_controls_reach_the_buses", false, "required bus missing")
 		return
 
-	var original_music_db: float = AudioServer.get_bus_volume_db(music_index)
-	var original_sfx_db: float = AudioServer.get_bus_volume_db(sfx_index)
+	var original_music_volume: float = _audio.get_music_volume()
+	var original_sfx_volume: float = _audio.get_sfx_volume()
 	var original_muted: bool = AudioServer.is_bus_mute(master_index)
 
 	_audio.set_music_volume(0.5)
@@ -229,11 +242,129 @@ func _test_volume_controls_reach_the_buses() -> void:
 	_audio.set_muted(true)
 	var muted: bool = AudioServer.is_bus_mute(master_index)
 
-	var passed: bool = is_equal_approx(half_db, linear_to_db(0.5)) and is_equal_approx(quarter_db, linear_to_db(0.25)) and is_finite(zero_db) and zero_db <= -80.0 and muted
-	AudioServer.set_bus_volume_db(music_index, original_music_db)
-	AudioServer.set_bus_volume_db(sfx_index, original_sfx_db)
+	var expected_half_db: float = _audio.get_music_base_db() + linear_to_db(0.5)
+	var expected_quarter_db: float = _audio.get_sfx_base_db() + linear_to_db(0.25)
+	var passed: bool = is_equal_approx(half_db, expected_half_db) and is_equal_approx(quarter_db, expected_quarter_db) and is_finite(zero_db) and zero_db <= -80.0 and muted
+	_audio.set_music_volume(original_music_volume)
+	_audio.set_sfx_volume(original_sfx_volume)
 	AudioServer.set_bus_mute(master_index, original_muted)
 	_record_case("volume_controls_reach_the_buses", passed, "half_db=%.3f quarter_db=%.3f zero_db=%.3f muted=%s" % [half_db, quarter_db, zero_db, muted])
+
+
+func _test_default_volume_is_full() -> void:
+	var original_music_volume: float = _audio.get_music_volume()
+	var original_sfx_volume: float = _audio.get_sfx_volume()
+	DirAccess.remove_absolute(_audio.get_settings_path())
+	_audio.load_settings()
+
+	var music_index: int = AudioServer.get_bus_index(&"Music")
+	var music_db: float = AudioServer.get_bus_volume_db(music_index) if music_index >= 0 else INF
+	var music_volume: float = _audio.get_music_volume()
+	var sfx_volume: float = _audio.get_sfx_volume()
+	var passed: bool = is_equal_approx(music_volume, 1.0) and is_equal_approx(sfx_volume, 1.0) and is_equal_approx(music_db, _audio.get_music_base_db())
+
+	_audio.set_music_volume(original_music_volume)
+	_audio.set_sfx_volume(original_sfx_volume)
+	_audio.save_settings()
+	_record_case("default_volume_is_full", passed, "music=%.3f sfx=%.3f bus_db=%.3f base_db=%.3f" % [music_volume, sfx_volume, music_db, _audio.get_music_base_db()])
+
+
+func _test_volume_survives_a_reload() -> void:
+	var original_music_volume: float = _audio.get_music_volume()
+	var original_sfx_volume: float = _audio.get_sfx_volume()
+	_audio.set_music_volume(0.3)
+	_audio.set_sfx_volume(0.7)
+	_audio.load_settings()
+
+	var loaded_music: float = _audio.get_music_volume()
+	var loaded_sfx: float = _audio.get_sfx_volume()
+	var passed: bool = is_equal_approx(loaded_music, 0.3) and is_equal_approx(loaded_sfx, 0.7)
+
+	_audio.set_music_volume(original_music_volume)
+	_audio.set_sfx_volume(original_sfx_volume)
+	_audio.save_settings()
+	_record_case("volume_survives_a_reload", passed, "music=%.3f sfx=%.3f" % [loaded_music, loaded_sfx])
+
+
+func _test_broken_settings_fall_back_to_default() -> void:
+	var original_music_volume: float = _audio.get_music_volume()
+	var original_sfx_volume: float = _audio.get_sfx_volume()
+	var config: ConfigFile = ConfigFile.new()
+	config.set_value("audio", "music_volume", 9.9)
+	config.set_value("audio", "sfx_volume", "abc")
+	var save_error: Error = config.save(_audio.get_settings_path())
+	if save_error == OK:
+		_audio.load_settings()
+
+	var loaded_music: float = _audio.get_music_volume()
+	var loaded_sfx: float = _audio.get_sfx_volume()
+	var in_range: bool = loaded_music >= 0.0 and loaded_music <= 1.0 and loaded_sfx >= 0.0 and loaded_sfx <= 1.0
+	var defaults_used: bool = is_equal_approx(loaded_music, 1.0) and is_equal_approx(loaded_sfx, 1.0)
+	var passed: bool = save_error == OK and in_range and defaults_used
+
+	_audio.set_music_volume(original_music_volume)
+	_audio.set_sfx_volume(original_sfx_volume)
+	_audio.save_settings()
+	_record_case("broken_settings_fall_back_to_default", passed, "save_error=%s music=%.3f sfx=%.3f" % [error_string(save_error), loaded_music, loaded_sfx])
+
+
+func _test_volume_buttons_change_the_volume() -> void:
+	var original_music_volume: float = _audio.get_music_volume()
+	_audio.set_music_volume(0.5)
+	var volume_settings: Control = VOLUME_SETTINGS_SCENE.instantiate() as Control
+	add_child(volume_settings)
+
+	var minus_button: Button = volume_settings.get_node("Rows/MusicRow/MinusButton") as Button
+	var plus_button: Button = volume_settings.get_node("Rows/MusicRow/PlusButton") as Button
+	var before_volume: float = _audio.get_music_volume()
+	var before_percent: int = int(volume_settings.call("get_displayed_music_percent"))
+	minus_button.pressed.emit()
+	var after_volume: float = _audio.get_music_volume()
+	var after_percent: int = int(volume_settings.call("get_displayed_music_percent"))
+	var changed_by_step: bool = is_equal_approx(before_volume - after_volume, 0.1)
+	var display_followed: bool = before_percent - after_percent == 10 and after_percent == roundi(after_volume * 100.0)
+
+	_audio.set_music_volume(1.0)
+	plus_button.pressed.emit()
+	var upper_volume: float = _audio.get_music_volume()
+	_audio.set_music_volume(0.0)
+	minus_button.pressed.emit()
+	var lower_volume: float = _audio.get_music_volume()
+	var stayed_in_range: bool = upper_volume <= 1.0 and lower_volume >= 0.0
+
+	volume_settings.queue_free()
+	_audio.set_music_volume(original_music_volume)
+	_audio.save_settings()
+	var passed: bool = changed_by_step and display_followed and stayed_in_range
+	_record_case("volume_buttons_change_the_volume", passed, "before=%.3f/%d after=%.3f/%d upper=%.3f lower=%.3f" % [before_volume, before_percent, after_volume, after_percent, upper_volume, lower_volume])
+
+
+func _test_volume_buttons_are_opaque_and_tappable() -> void:
+	var volume_settings: Control = VOLUME_SETTINGS_SCENE.instantiate() as Control
+	add_child(volume_settings)
+	var buttons: Array[Button] = []
+	_collect_buttons(volume_settings, buttons)
+	var failures: Array[String] = []
+	for button: Button in buttons:
+		var large_enough: bool = button.custom_minimum_size.x >= 76.0 and button.custom_minimum_size.y >= 76.0
+		var normal_style: StyleBox = button.get_theme_stylebox(&"normal")
+		var opaque: bool = false
+		if normal_style is StyleBoxFlat:
+			var flat_style: StyleBoxFlat = normal_style as StyleBoxFlat
+			opaque = is_equal_approx(flat_style.bg_color.a, 1.0)
+		if not large_enough or not opaque:
+			failures.append("%s(size=%s opaque=%s)" % [button.get_path(), button.custom_minimum_size, opaque])
+
+	var passed: bool = buttons.size() == 4 and failures.is_empty()
+	volume_settings.queue_free()
+	_record_case("volume_buttons_are_opaque_and_tappable", passed, "buttons=%d failures=%s" % [buttons.size(), failures])
+
+
+func _collect_buttons(node: Node, buttons: Array[Button]) -> void:
+	if node is Button:
+		buttons.append(node as Button)
+	for child: Node in node.get_children():
+		_collect_buttons(child, buttons)
 
 
 ## 배선 검사 — "매니저가 소리를 낼 수 있다"와 "게임이 그 소리를 부른다"는 다른 문제다.
@@ -331,3 +462,53 @@ func _test_game_start_and_death_drive_the_music() -> void:
 	get_tree().paused = false
 	var passed: bool = playing_after_start and not playing_after_death and death_count == 1
 	_record_case("game_start_and_death_drive_the_music", passed, "start=%s after_death=%s death_count=%d" % [playing_after_start, playing_after_death, death_count])
+
+
+func _test_volume_ui_is_in_the_pause_menu() -> void:
+	# 씬이 혼자 동작하는 것과 일시정지 화면에 붙어 있는 것은 다른 문제다.
+	# 이 프로젝트에서 "정의는 멀쩡한데 호출처가 0건"이 세 번 나왔다.
+	var main: Node = MAIN_SCENE.instantiate()
+	add_child(main)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	var game_flow: Node = main.get_node_or_null("GameFlow")
+	if game_flow == null:
+		main.queue_free()
+		get_tree().paused = false
+		_record_case("volume_ui_is_in_the_pause_menu", false, "GameFlow 를 찾지 못했다")
+		return
+
+	game_flow.call(&"start_game")
+	# 화면을 열기 **전에** 음량을 바꿔 둔다. 열 때 다시 읽지 않으면 숫자가 옛날 값으로
+	# 남는데, 실제로 그랬다 (캡처로 발견). 이 순서가 아니면 그 결함을 못 잡는다.
+	var original_music_volume: float = _audio.get_music_volume()
+	_audio.set_music_volume(0.4)
+	game_flow.call(&"open_pause_menu")
+	await get_tree().process_frame
+
+	var volume_settings: Control = game_flow.get_node_or_null("PausePanel/VolumeSettings") as Control
+	var found: bool = volume_settings != null
+	var visible_now: bool = found and volume_settings.is_visible_in_tree()
+	var display_is_fresh: bool = found and int(volume_settings.call("get_displayed_music_percent")) == 40
+
+	# 화면 밖으로 밀려나면 폰에서 못 누른다. 설계 해상도 세로 720 안에 들어와야 한다.
+	var fits: bool = false
+	var buttons_ok: bool = false
+	var bottom: float = -1.0
+	if found:
+		var rect: Rect2 = volume_settings.get_global_rect()
+		bottom = rect.position.y + rect.size.y
+		fits = rect.position.y >= 0.0 and bottom <= 720.0
+		var minus: Button = volume_settings.get_node_or_null("Rows/MusicRow/MinusButton") as Button
+		var plus: Button = volume_settings.get_node_or_null("Rows/SfxRow/PlusButton") as Button
+		# 컨테이너가 실제로 크기를 준 뒤의 값을 본다. custom_minimum_size 만 보면
+		# 부모가 눌러 찌그러뜨린 경우를 놓친다.
+		buttons_ok = minus != null and plus != null and minus.size.x >= 64.0 and minus.size.y >= 64.0 and plus.size.x >= 64.0 and plus.size.y >= 64.0
+
+	main.queue_free()
+	get_tree().paused = false
+	_audio.set_music_volume(original_music_volume)
+	_audio.save_settings()
+	var passed: bool = found and visible_now and fits and buttons_ok and display_is_fresh
+	_record_case("volume_ui_is_in_the_pause_menu", passed, "found=%s visible=%s fits=%s(bottom=%.0f) buttons=%s fresh=%s" % [found, visible_now, fits, bottom, buttons_ok, display_is_fresh])

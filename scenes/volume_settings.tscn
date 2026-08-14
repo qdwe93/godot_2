@@ -1,0 +1,187 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://scripts/volume_settings.gd" id="1_volume_settings"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_volume_button"]
+bg_color = Color(0.18, 0.2, 0.25, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.35, 0.39, 0.47, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_volume_button_hover"]
+bg_color = Color(0.24, 0.27, 0.33, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.83, 0.29, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_volume_button_pressed"]
+bg_color = Color(0.3, 0.34, 0.42, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.83, 0.29, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar_background"]
+; **불투명이어야 한다.** Godot 기본 ProgressBar 스타일은 반투명이라, 화면 한가운데에
+; 고정된 주인공이 바 한복판으로 그대로 비쳐 보였다. 캡처로 발견했고 M17 레벨업 카드와
+; M18 일시정지 버튼에서 이미 두 번 겪은 것과 같은 함정이다.
+bg_color = Color(0.09, 0.1, 0.13, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.35, 0.39, 0.47, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar_fill"]
+; 찬 부분은 메뉴의 강조색(노랑)이다. 회색 위 회색이면 100%인지 0%인지 구별되지 않는다.
+bg_color = Color(1, 0.83, 0.29, 1)
+corner_radius_top_left = 6
+corner_radius_top_right = 6
+corner_radius_bottom_right = 6
+corner_radius_bottom_left = 6
+
+[node name="VolumeSettings" type="Control"]
+process_mode = 3
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+script = ExtResource("1_volume_settings")
+
+[node name="Rows" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+theme_override_constants/separation = 20
+
+[node name="MusicRow" type="HBoxContainer" parent="Rows"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="Label" type="Label" parent="Rows/MusicRow"]
+custom_minimum_size = Vector2(190, 0)
+layout_mode = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 28
+text = "배경음악"
+vertical_alignment = 1
+
+[node name="MinusButton" type="Button" parent="Rows/MusicRow"]
+custom_minimum_size = Vector2(76, 76)
+layout_mode = 2
+theme_override_font_sizes/font_size = 36
+theme_override_styles/normal = SubResource("StyleBoxFlat_volume_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_volume_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_volume_button_pressed")
+theme_override_styles/focus = SubResource("StyleBoxFlat_volume_button_hover")
+text = "−"
+
+[node name="Bar" type="ProgressBar" parent="Rows/MusicRow"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+max_value = 100.0
+step = 1.0
+value = 100.0
+show_percentage = false
+theme_override_styles/background = SubResource("StyleBoxFlat_bar_background")
+theme_override_styles/fill = SubResource("StyleBoxFlat_bar_fill")
+
+[node name="PlusButton" type="Button" parent="Rows/MusicRow"]
+custom_minimum_size = Vector2(76, 76)
+layout_mode = 2
+theme_override_font_sizes/font_size = 36
+theme_override_styles/normal = SubResource("StyleBoxFlat_volume_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_volume_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_volume_button_pressed")
+theme_override_styles/focus = SubResource("StyleBoxFlat_volume_button_hover")
+text = "+"
+
+[node name="ValueLabel" type="Label" parent="Rows/MusicRow"]
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 26
+text = "100%"
+horizontal_alignment = 2
+vertical_alignment = 1
+
+[node name="SfxRow" type="HBoxContainer" parent="Rows"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 16
+
+[node name="Label" type="Label" parent="Rows/SfxRow"]
+custom_minimum_size = Vector2(190, 0)
+layout_mode = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 28
+text = "효과음"
+vertical_alignment = 1
+
+[node name="MinusButton" type="Button" parent="Rows/SfxRow"]
+custom_minimum_size = Vector2(76, 76)
+layout_mode = 2
+theme_override_font_sizes/font_size = 36
+theme_override_styles/normal = SubResource("StyleBoxFlat_volume_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_volume_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_volume_button_pressed")
+theme_override_styles/focus = SubResource("StyleBoxFlat_volume_button_hover")
+text = "−"
+
+[node name="Bar" type="ProgressBar" parent="Rows/SfxRow"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+max_value = 100.0
+step = 1.0
+value = 100.0
+show_percentage = false
+theme_override_styles/background = SubResource("StyleBoxFlat_bar_background")
+theme_override_styles/fill = SubResource("StyleBoxFlat_bar_fill")
+
+[node name="PlusButton" type="Button" parent="Rows/SfxRow"]
+custom_minimum_size = Vector2(76, 76)
+layout_mode = 2
+theme_override_font_sizes/font_size = 36
+theme_override_styles/normal = SubResource("StyleBoxFlat_volume_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_volume_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_volume_button_pressed")
+theme_override_styles/focus = SubResource("StyleBoxFlat_volume_button_hover")
+text = "+"
+
+[node name="ValueLabel" type="Label" parent="Rows/SfxRow"]
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 26
+text = "100%"
+horizontal_alignment = 2
+vertical_alignment = 1

@@ -4,6 +4,7 @@ class_name AudioManager
 const SFX_POOL_SIZE: int = 12
 const SILENT_VOLUME_DB: float = -80.0
 const BGM_PATH: String = "res://assets/audio/bgm/main_theme.mp3"
+const SETTINGS_PATH: String = "user://settings.cfg"
 
 const SFX_LIBRARY: Dictionary = {
 	&"shoot":    {"path": "res://assets/audio/sfx/shoot.wav",    "volume_db": -9.0,  "min_interval": 0.05, "pitch_jitter": 0.08},
@@ -25,6 +26,10 @@ var _sfx_bus_name: StringName = &"Master"
 var _music_bus_index: int = -1
 var _sfx_bus_index: int = -1
 var _master_bus_index: int = -1
+var _music_base_db: float = 0.0
+var _sfx_base_db: float = 0.0
+var _music_volume: float = 1.0
+var _sfx_volume: float = 1.0
 
 
 func _ready() -> void:
@@ -35,10 +40,14 @@ func _ready() -> void:
 	_sfx_bus_name = _resolve_bus_name(&"SFX")
 	_music_bus_index = AudioServer.get_bus_index(_music_bus_name)
 	_sfx_bus_index = AudioServer.get_bus_index(_sfx_bus_name)
+	# 사용자가 고른 100%가 원래 믹스를 뜻해야 하므로 설정을 덮기 전에 기준값을 붙잡는다.
+	_music_base_db = AudioServer.get_bus_volume_db(_music_bus_index) if _music_bus_index >= 0 else 0.0
+	_sfx_base_db = AudioServer.get_bus_volume_db(_sfx_bus_index) if _sfx_bus_index >= 0 else 0.0
 
 	_create_music_player()
 	_create_sfx_pool()
 	_load_sfx_library()
+	load_settings()
 
 
 func _resolve_bus_name(preferred_name: StringName) -> StringName:
@@ -164,36 +173,91 @@ func is_music_playing() -> bool:
 
 
 func set_music_volume(linear: float) -> void:
-	_set_bus_linear_volume(_music_bus_index, linear)
+	var clamped_linear: float = clampf(linear, 0.0, 1.0)
+	var changed: bool = not is_equal_approx(_music_volume, clamped_linear)
+	_music_volume = clamped_linear
+	_apply_bus_volume(_music_bus_index, _music_base_db, _music_volume)
+	if changed:
+		save_settings()
 
 
 func set_sfx_volume(linear: float) -> void:
-	_set_bus_linear_volume(_sfx_bus_index, linear)
+	var clamped_linear: float = clampf(linear, 0.0, 1.0)
+	var changed: bool = not is_equal_approx(_sfx_volume, clamped_linear)
+	_sfx_volume = clamped_linear
+	_apply_bus_volume(_sfx_bus_index, _sfx_base_db, _sfx_volume)
+	if changed:
+		save_settings()
 
 
 func get_music_volume() -> float:
-	return _get_bus_linear_volume(_music_bus_index)
+	return _music_volume
 
 
 func get_sfx_volume() -> float:
-	return _get_bus_linear_volume(_sfx_bus_index)
+	return _sfx_volume
 
 
-func _set_bus_linear_volume(bus_index: int, linear: float) -> void:
+func get_music_base_db() -> float:
+	return _music_base_db
+
+
+func get_sfx_base_db() -> float:
+	return _sfx_base_db
+
+
+func get_settings_path() -> String:
+	return SETTINGS_PATH
+
+
+func save_settings() -> void:
+	var config: ConfigFile = ConfigFile.new()
+	var load_error: Error = config.load(SETTINGS_PATH)
+	if load_error != OK and load_error != ERR_FILE_NOT_FOUND:
+		# 손상된 파일의 일부를 재사용하면 다음 실행도 읽지 못하므로 새 설정으로 교체한다.
+		config = ConfigFile.new()
+	config.set_value("audio", "music_volume", _music_volume)
+	config.set_value("audio", "sfx_volume", _sfx_volume)
+	var save_error: Error = config.save(SETTINGS_PATH)
+	if save_error != OK:
+		push_error("AudioManager: 음량 설정을 저장하지 못했습니다: %s" % error_string(save_error))
+
+
+func load_settings() -> void:
+	var config: ConfigFile = ConfigFile.new()
+	var load_error: Error = config.load(SETTINGS_PATH)
+	if load_error == ERR_FILE_NOT_FOUND:
+		# 첫 실행에는 파일이 없는 것이 정상이며, 레이아웃의 믹스를 그대로 쓴다.
+		_music_volume = 1.0
+		_sfx_volume = 1.0
+	elif load_error != OK:
+		push_error("AudioManager: 음량 설정을 읽지 못해 기본값을 사용합니다: %s" % error_string(load_error))
+		_music_volume = 1.0
+		_sfx_volume = 1.0
+	else:
+		_music_volume = _read_volume_setting(config, "music_volume")
+		_sfx_volume = _read_volume_setting(config, "sfx_volume")
+
+	_apply_bus_volume(_music_bus_index, _music_base_db, _music_volume)
+	_apply_bus_volume(_sfx_bus_index, _sfx_base_db, _sfx_volume)
+
+
+func _read_volume_setting(config: ConfigFile, key: String) -> float:
+	var raw_value: Variant = config.get_value("audio", key, 1.0)
+	var value_type: int = typeof(raw_value)
+	if value_type != TYPE_FLOAT and value_type != TYPE_INT:
+		return 1.0
+	var numeric_value: float = float(raw_value)
+	if not is_finite(numeric_value) or numeric_value < 0.0 or numeric_value > 1.0:
+		return 1.0
+	return numeric_value
+
+
+func _apply_bus_volume(bus_index: int, base_db: float, linear: float) -> void:
 	if bus_index < 0:
 		return
-	var clamped_linear: float = clampf(linear, 0.0, 1.0)
-	var volume_db: float = SILENT_VOLUME_DB if clamped_linear <= 0.0 else linear_to_db(clamped_linear)
+	var volume_db: float = SILENT_VOLUME_DB if linear <= 0.0 else base_db + linear_to_db(linear)
 	AudioServer.set_bus_volume_db(bus_index, volume_db)
-
-
-func _get_bus_linear_volume(bus_index: int) -> float:
-	if bus_index < 0:
-		return 0.0
-	var volume_db: float = AudioServer.get_bus_volume_db(bus_index)
-	if volume_db <= SILENT_VOLUME_DB:
-		return 0.0
-	return db_to_linear(volume_db)
 
 
 func set_muted(muted: bool) -> void:

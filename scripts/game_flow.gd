@@ -9,6 +9,7 @@ extends CanvasLayer
 @onready var pause_panel: Control = $PausePanel
 @onready var resume_button: Button = $PausePanel/ResumeButton
 @onready var pause_restart_button: Button = $PausePanel/PauseRestartButton
+@onready var volume_settings: Control = $PausePanel/VolumeSettings
 @onready var title_panel: Control = $TitlePanel
 @onready var game_over_panel: Control = $GameOverPanel
 @onready var result_label: Label = $GameOverPanel/ResultLabel
@@ -125,6 +126,10 @@ func open_pause_menu() -> void:
 	if not can_pause():
 		return
 	pause_panel.show()
+	# 화면을 열 때마다 현재 음량을 다시 읽는다. 설정이 저장된 값으로 바뀌었거나
+	# 다른 경로로 조절됐을 때, 안 읽으면 숫자만 옛날 값으로 남는다 (캡처로 발견).
+	if volume_settings != null:
+		volume_settings.call(&"refresh")
 	get_tree().paused = true
 	print("FLOW_PAUSED")
 
