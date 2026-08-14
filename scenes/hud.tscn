@@ -3,7 +3,12 @@
 [ext_resource type="Script" path="res://scripts/hud.gd" id="1_hud"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bar_background"]
-bg_color = Color(0.2, 0.2, 0.24, 1)
+; 화면 가로 전체를 지르는 막대라 예전 색(0.2,0.2,0.24)으로는 **빈 바가 꽉 찬 것처럼**
+; 보였다. 배경을 어둡게 내려서 파란 채움이 어디까지 왔는지가 한눈에 읽히게 한다.
+bg_color = Color(0.11, 0.11, 0.14, 0.92)
+border_width_top = 2
+border_width_bottom = 2
+border_color = Color(0, 0, 0, 0.8)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_experience_fill"]
 bg_color = Color(0.35, 0.6, 1, 1)

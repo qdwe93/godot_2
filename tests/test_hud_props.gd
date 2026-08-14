@@ -1,6 +1,6 @@
 extends Node
 
-const EXPECTED_CASE_COUNT: int = 13
+const EXPECTED_CASE_COUNT: int = 14
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const ENEMY_SCENE: PackedScene = preload("res://scenes/enemy.tscn")
 const PROJECTILE_SCRIPT: Script = preload("res://scripts/projectile.gd")
@@ -38,6 +38,7 @@ func _run_suite() -> void:
 	_test_pause_button_toggles_pause(game_flow)
 	_test_pause_is_refused_during_level_up(game_flow, level_up_ui)
 	_test_timer_is_centred_and_large(time_label)
+	_test_menu_buttons_are_opaque(game_flow)
 	_test_health_bar_starts_full(player, health_bar)
 	await _test_health_bar_follows_the_player(player, health_bar)
 	await _test_health_bar_reflects_damage(player, health_bar)
@@ -173,6 +174,39 @@ func _test_timer_is_centred_and_large(time_label: Label) -> void:
 ##
 ## 피해를 준 뒤를 보는 케이스로는 못 잡는다 — 피해가 신호를 쏘면서 값이 고쳐지기
 ## 때문이다. 그래서 아무것도 하지 않은 상태를 따로 본다.
+
+## 화면을 덮는 메뉴의 버튼이 **불투명한가.**
+##
+## Godot 기본 버튼 스타일은 반투명이다. 주인공이 화면 한가운데에 고정돼 있으므로,
+## 가운데 놓인 버튼 한복판으로 주인공이 그대로 비쳐 보인다. M17 의 레벨업 카드에서
+## 한 번 겪었고 M18 의 일시정지 메뉴에서 또 겪었다 — 두 번 다 **캡처로만** 발견했다.
+## 어떤 테스트도 잡지 못했기 때문에 여기서 잡는다.
+func _test_menu_buttons_are_opaque(game_flow: Node) -> void:
+	var paths: Array[String] = [
+		"PausePanel/ResumeButton",
+		"PausePanel/PauseRestartButton",
+		"TitlePanel/StartButton",
+		"GameOverPanel/RestartButton",
+	]
+	var offenders: PackedStringArray = []
+	for path in paths:
+		var button: Button = game_flow.get_node_or_null(path) as Button
+		if button == null:
+			offenders.append("%s(없음)" % path)
+			continue
+		var style: StyleBox = button.get_theme_stylebox(&"normal")
+		var flat: StyleBoxFlat = style as StyleBoxFlat
+		if flat == null:
+			offenders.append("%s(StyleBoxFlat 아님)" % path)
+		elif flat.bg_color.a < 0.999:
+			offenders.append("%s(alpha=%.2f)" % [path, flat.bg_color.a])
+	_record_case(
+		"menu_buttons_are_opaque",
+		offenders.is_empty(),
+		"검사 %d개 %s" % [paths.size(), "ok" if offenders.is_empty() else ",".join(offenders)]
+	)
+
+
 func _test_health_bar_starts_full(player: Node2D, health_bar: ProgressBar) -> void:
 	var player_health: float = float(player.get(&"health"))
 	var player_max: float = float(player.get(&"max_health"))
