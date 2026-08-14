@@ -240,7 +240,7 @@ python tools/balance_sim.py --plan m16 --emit-gdscript
 ## 전체 테스트 스위트 (한 번에 돌리기)
 
 ```powershell
-foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_player_damage","test_experience","test_level_up_ui","test_upgrades","test_upgrade_limits","test_new_weapons","test_waves","test_boss_and_separation","test_hud","test_game_flow","test_effects","test_scene_wiring","test_feedback","test_visual_hierarchy","test_power_growth","test_touch_joystick","test_screen_fit","test_camera_follow","test_level_up_cards")) { $r = & "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" --quit-after 3600 "res://tests/$t.tscn" 2>&1 | Select-String -Pattern "TEST_RESULT|TEST_ERROR"; "$t => $r (exit=$LASTEXITCODE)" }
+foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_player_damage","test_experience","test_level_up_ui","test_upgrades","test_upgrade_limits","test_new_weapons","test_waves","test_boss_and_separation","test_hud","test_game_flow","test_effects","test_scene_wiring","test_feedback","test_visual_hierarchy","test_power_growth","test_touch_joystick","test_screen_fit","test_camera_follow","test_level_up_cards","test_hud_props")) { $r = & "C:\Program Files (x86)\Godot\Godot_v4.7.1-stable_win64_console.exe" --headless --path "C:\Workspaces\game_make\test_godot_2" --quit-after 3600 "res://tests/$t.tscn" 2>&1 | Select-String -Pattern "TEST_RESULT|TEST_ERROR"; "$t => $r (exit=$LASTEXITCODE)" }
 ```
 
 | 스위트 | 케이스 | 검증 내용 |
@@ -267,6 +267,7 @@ foreach ($t in @("test_player_movement","test_enemy_spawn","test_weapon","test_p
 | `test_screen_fit` | 7 | **실기 회귀** — 배경·HUD·패널이 뷰포트를 덮는가, 회복으로 안 흔들리는가, 흔들림 최소 간격, 저체력 표시, **레벨업 화면 덮개·버튼 크기·앵커** |
 | `test_level_up_cards` | 7 | **레벨업 카드** — 이름·설명이 라벨에서 갈라지는가, 별 개수 = `max_level`, 채워진 별 = 찍고 난 뒤 레벨, `New!` 는 미획득만, 슬롯 바가 전 업그레이드를 담는가, 보유 슬롯만 레벨 숫자, 카드 안 요소가 터치를 삼키지 않는가 |
 | `test_camera_follow` | 7 | **카메라와 무한 세계** — 카메라 활성, 주인공이 항상 화면 중앙, 가두기 없음, 적이 보이는 화면 둘레에서 스폰, 뒤처진 적 회수(`died` 미발생), 흔들림 대상이 카메라, 바닥 격자 타일 스냅 |
+| `test_hud_props` | 14 | **HUD 소품** — 일시정지 버튼 크기·타이틀에서 숨김·걸고 푸는 것까지, 레벨업 중 일시정지 거부, 타이머 중앙 앵커, 메뉴 버튼 불투명, 발밑 체력바가 **처음부터 가득**·주인공을 따라감·위험 색 양방향, 피해 숫자 값·상한·수명, **투사체 명중이 실제로 숫자를 부르는가** |
 
 > ⚠️ `test_enemy_spawn`은 **간헐적으로 1케이스가 실패**한다 (12회 중 1회 관측, 재현 8회 실패). 스폰 개수·추적 거리가 타이머 위상에 민감한 것으로 추정. 한 번 실패하면 재실행해 보고, 반복되면 허용 오차를 넓힐 것.
 
@@ -301,6 +302,43 @@ M17에서 레벨업 카드를 만들며 `expand_mode` / `stretch_mode` / `alignm
 | `Control.MOUSE_FILTER_STOP / PASS / IGNORE` | 0 / 1 / 2 |
 | `Control.SIZE_EXPAND_FILL` | 3 |
 | `TextServer.AUTOWRAP_WORD_SMART` | 3 |
+
+### ⚠️ 자식의 `_ready()` 는 부모보다 **먼저** 돈다
+
+M18 에서 발밑 체력바가 **체력이 가득인데 텅 빈 채로** 보였다. 체력바(자식)가
+`player.health` 를 읽는 시점에 `player.gd` 의 `_ready()` 가 아직 안 돌아 0.0 이었다.
+
+그 뒤로도 안 고쳐진다 — 체력이 가득이면 `health_changed` 가 발생할 일이 없기
+때문이다. 첫 피해를 입을 때까지 빈 바가 계속 보이고 **에러는 하나도 안 난다.**
+
+부모의 상태를 초기값으로 읽어야 하면 `call_deferred` 로 미룬다.
+
+> 회귀 테스트는 **아무것도 하지 않은 상태**를 봐야 한다. 피해를 준 뒤를 보는
+> 케이스로는 못 잡는다 — 피해가 신호를 쏘면서 값이 고쳐지기 때문이다.
+
+### ⚠️ 해제된 Object 참조는 `== null` 이 참이다
+
+```gdscript
+var made: Node = spawner.spawn_thing()   # 정상 생성됨
+await ...                                # 수명이 끝나 자가 해제
+var ok: bool = made != null              # <- false 다
+```
+
+수명이 끝난 뒤에 `!= null` 을 물으면 **"애초에 안 만들어졌다"와 "만들어졌다가
+사라졌다"를 구별할 수 없다.** 생성 여부는 기다리기 **전에** `bool` 로 붙잡는다.
+
+`as` 캐스팅도 같은 종류다 — 실패하면 예외가 아니라 조용히 `null` 을 준다.
+`LevelUpUI` 를 `Control` 로 캐스팅했다가(실제로는 `CanvasLayer`) 그 다음 줄에서
+"null 값에 메서드 호출"로 터졌다.
+
+### ⚠️ 화면을 덮는 버튼은 **불투명**해야 한다
+
+Godot 기본 버튼 스타일은 반투명이다. 주인공이 화면 한가운데에 고정돼 있으므로
+가운데 놓인 버튼 한복판으로 주인공이 그대로 비쳐 보인다.
+
+M17 레벨업 카드에서 한 번, M18 일시정지 메뉴에서 또 한 번 겪었다. **두 번 다
+캡처로만 발견했다.** 지금은 `test_hud_props` 의 `menu_buttons_are_opaque` 가
+`normal` 스타일박스의 `bg_color.a == 1` 을 검사한다.
 
 ### 스프라이트를 바꿨으면 축소해서 재라
 
