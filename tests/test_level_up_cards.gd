@@ -11,7 +11,7 @@ extends Node
 ##   - 슬롯 바는 `UpgradeData` 의 정의에서 만들어진다. 업그레이드를 추가하면 슬롯도 늘어야 한다
 ##   - 카드 안의 라벨·아이콘이 터치를 먹으면 안 된다 — 이건 에러 없이 조용히 깨지는 종류다
 
-const EXPECTED_CASE_COUNT: int = 7
+const EXPECTED_CASE_COUNT: int = 8
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const STAR_FULL_PATH: String = "res://assets/ui/star_full.png"
 
@@ -48,6 +48,7 @@ func _ready() -> void:
 	_case_slot_bar_covers_every_upgrade()
 	_case_slot_shows_owned_level()
 	_case_card_children_do_not_eat_taps()
+	_case_every_upgrade_has_a_loadable_icon()
 
 	_main.free()
 	_finish()
@@ -219,6 +220,30 @@ func _case_card_children_do_not_eat_taps() -> void:
 				offenders.append("Choice%d/%s(filter=%d)" % [index, control.name, control.mouse_filter])
 	_record("card_children_do_not_eat_taps", offenders.is_empty(),
 		"ok" if offenders.is_empty() else ",".join(offenders))
+
+
+## 아이콘이 **실제로 카드에 올라가는가.**
+##
+## 경로만 정의해 두고 배선이 끊긴 채로 두는 실수를 이 프로젝트에서 세 번 했다
+## (산탄·궤도구 미노출, spawn_hit 호출처 0건, 보스 드랍 메서드 이름 불일치).
+## 오타 하나면 카드 한가운데가 조용히 비어 있게 된다 — 에러는 안 난다.
+func _case_every_upgrade_has_a_loadable_icon() -> void:
+	var offenders: PackedStringArray = []
+	for upgrade_id in UpgradeData.get_all_ids():
+		var path: String = UpgradeData.get_icon_path(upgrade_id)
+		if path.is_empty():
+			offenders.append("%s(경로없음)" % upgrade_id)
+			continue
+		if not ResourceLoader.exists(path):
+			offenders.append("%s(파일없음 %s)" % [upgrade_id, path])
+			continue
+		_fill(0, upgrade_id)
+		var icon: TextureRect = _card(0).get_node_or_null("Body/Icon") as TextureRect
+		if icon == null or icon.texture == null:
+			offenders.append("%s(카드에 안 올라감)" % upgrade_id)
+	_record("every_upgrade_has_a_loadable_icon", offenders.is_empty(),
+		"검사 %d종 %s" % [UpgradeData.get_all_ids().size(),
+			"ok" if offenders.is_empty() else ",".join(offenders)])
 
 
 func _descendants(node: Node) -> Array[Node]:
