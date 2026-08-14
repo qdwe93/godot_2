@@ -211,6 +211,28 @@ Godot 4.7에서는 `Variant` 값으로부터 `:=` 타입을 추론하는 선언�
 **화면을 덮는 모달은 완전 불투명이어야 한다.** 레벨업 덮개를 0.985 까지 올려도
 큰 흰 글자에 굵은 외곽선이라 뒤의 시계가 여전히 읽혔다.
 
+## 소리 (M19)
+
+`scripts/audio_manager.gd` 는 autoload **`Audio`** 다. 씬을 갈아 끼우는 재시작에도
+살아남아야 하므로 씬 안에 두지 않는다. `process_mode` 는 **ALWAYS(3)** — 일시정지
+중에 레벨업 효과음이 나고 배경음악이 끊기지 않아야 한다.
+
+```gdscript
+Audio.play_sfx(&"shoot")   # shoot / hit / hurt / level_up / death
+Audio.play_music()         # game_flow.start_game() 이 부른다
+```
+
+- **효과음을 추가하면 `SFX_LIBRARY` 에 등록한다.** `test_audio` 의
+  `every_sfx_file_is_registered` 가 디스크와 표를 **양방향으로** 맞춰 본다
+- 소리 파일은 `tools/gen_sfx.py` 가 만든다. 받아 온 것이 아니므로 라이선스가 없다.
+  **음량은 생성 단계에서 맞춘다** — `gen_sfx.py` 의 peak 와 `volume_db` 를 둘 다
+  만지면 다음에 반드시 헤맨다
+- 발사·명중은 초당 수십 번 불린다. 솎아내기(`min_interval`)는 `AudioManager` 안에서
+  하고 **호출하는 쪽은 그냥 부른다**
+- 산탄은 **펠릿마다가 아니라 한 발사에 한 번** 소리를 낸다
+- 버스는 `default_bus_layout.tres` 의 Master / Music(-8dB) / SFX 셋이다. 배경음악이
+  효과음을 덮으면 타격감이 사라진다
+
 ## HUD 시계는 웨이브 시계와 같아야 한다
 
 `hud.gd` 는 `process_mode = 3`(ALWAYS)이라 일시정지 중에도 `_process` 가 돈다.
@@ -366,6 +388,39 @@ var ok: bool = made != null              # <- false 다
 `as` 캐스팅도 같은 종류다 — 실패하면 예외가 아니라 조용히 `null` 을 준다.
 `LevelUpUI` 를 `Control` 로 캐스팅했다가(실제로는 `CanvasLayer`) 그 다음 줄에서
 "null 값에 메서드 호출"로 터졌다.
+
+### ⚠️ `project.godot` 의 주석은 `;` 다 (`#` 아니다)
+
+M19 에서 `[autoload]` 섹션에 `#` 로 설명을 달았더니 **섹션 전체가 무시됐다.**
+증상은 여섯 파일에서 나는 `Identifier "Audio" not declared in the current scope` 다.
+autoload 를 안 적었나 의심하게 되는데 적혀 있었다. 파싱이 깨진 것이다.
+
+### ⚠️ `create_timer(..., ignore_time_scale = true)` 는 짧은 시간에서 먼저 끝난다
+
+| 요청 | ignore_time_scale=true | 기본 |
+|---:|---:|---:|
+| 70ms | **53ms** | 76ms |
+| 500ms | 492~504ms | 503~504ms |
+
+500ms 에서는 정확하다. **짧은 대기에서만 프레임 델타만큼 일찍 깨어난다.**
+
+문턱값을 검사할 때는 **검사 대상이 쓰는 시계로 기다려라.**
+
+```gdscript
+var deadline_msec: int = Time.get_ticks_msec() + threshold_msec + 5
+while Time.get_ticks_msec() < deadline_msec:
+    await get_tree().process_frame
+```
+
+### ⚠️ 억제 장치가 켜진 채로는 그 아래의 결함을 못 본다
+
+M19 고장 주입에서 1건을 놓쳤다. `player.gd` 의 `_die()` 뒤 `return` 을 지워 **죽는
+프레임에도 피격음이 나게** 만들었는데 테스트가 통과했다 — 피격음에 150ms 최소
+간격이 걸려 있어서 **고장이 없어도 어차피 솎였기 때문이다.** 검사한 것은 결함이
+아니라 솎아내기였다.
+
+억제(쿨다운·솎아내기·무적 시간·중복 방지)가 있는 코드를 검사할 때는 **그 억제를
+끈 상태에서** 봐라. 아니면 억제가 결함을 대신 가려 주고 테스트는 초록불을 준다.
 
 ### ⚠️ 화면을 덮는 버튼은 **불투명**해야 한다
 

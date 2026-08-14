@@ -92,6 +92,21 @@ adb install -r build/android/TangtangSurvivors-debug.apk
 
 `build/.gdignore`가 있어야 한다. 없으면 웹 산출물의 PNG들이 **프로젝트 에셋으로 다시 임포트되어** 다음 빌드의 pck에 섞여 들어간다.
 
+### 배경음악이 웹 빌드를 6MB 키웠다 (M19)
+
+`index.pck` 가 **1.5MB 에서 7.5MB** 가 됐다. 거의 전부 `main_theme.mp3` (5.9MB) 다.
+mp3 는 이미 압축돼 있어 pck 압축이 더 짜낼 게 없다.
+
+| 산출물 | 크기 |
+|---|---:|
+| `index.wasm` | 37.7MB (엔진, 변동 없음) |
+| `index.pck` | **7.5MB** (M18 까지는 1.5MB) |
+| `TangtangSurvivors.exe` | 111.5MB |
+| `TangtangSurvivors-debug.apk` | 62.3MB |
+
+웹 첫 로딩이 눈에 띄게 길어지면 선택지는 두 가지다 — **비트레이트를 낮춰 다시
+인코딩**하거나, 배경음악만 따로 받아 오게 만드는 것. 지금은 그냥 둔다.
+
 ### 테스트는 빌드에 포함되지 않는다
 
 세 프리셋 모두 `exclude_filter="tests/*"`다. 자동 테스트 씬은 산출물에 들어가지 않는다.

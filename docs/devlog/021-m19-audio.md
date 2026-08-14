@@ -94,3 +94,91 @@ Music 버스는 **-8dB** 로 시작한다. 배경음악이 효과음을 덮으�
 | `level_up` | `level_up_ui.gd` 의 `visible = true` 바로 그 줄 | 화면이 실제로 뜰 때만 |
 | 배경음악 | `game_flow.gd` `start_game()` / `enable_auto_play()` 에서 켜고 `_on_player_died()` 에서 끈다 | 사망음이 들리도록 비운다 |
 
+## 5. 함정 세 개
+
+### 5-1. `project.godot` 의 주석은 `;` 다. `#` 를 쓰면 그 섹션이 통째로 죽는다
+
+autoload 를 등록하면서 설명을 `#` 로 달았다. 결과는 이랬다:
+
+```
+SCRIPT ERROR: Parse Error: Identifier "Audio" not declared in the current scope.
+   at: GDScript::reload (res://scripts/player.gd:136)
+... 여섯 파일에서 같은 오류
+```
+
+**`Audio` 를 못 찾는다는 오류만 보면 autoload 를 안 적었나 의심하게 되는데, 적혀
+있었다.** `#` 줄이 파싱을 깨뜨려 `[autoload]` 섹션 전체가 무시된 것이다.
+`project.godot` 첫 줄부터 `;` 를 쓰고 있는데도 못 봤다.
+
+### 5-2. `create_timer(..., ignore_time_scale = true)` 는 짧은 시간에서 먼저 끝난다
+
+솎아내기가 풀리는지 보려고 `min_interval + 0.02` 초를 기다렸는데 실패했다.
+찍어 봤다:
+
+| 요청 | ignore_time_scale=true | 기본 |
+|---:|---:|---:|
+| 70ms | **53ms** | 76ms |
+| 500ms | 492 / 504 / 504ms | 503 / 503 / 504ms |
+
+500ms 에서는 둘 다 정확하다. **짧은 시간에서만 프레임 델타만큼 먼저 끝난다.**
+20ms 여유로는 50ms 문턱을 못 넘는다.
+
+고친 방법이 결론이다 — **검사 대상이 쓰는 시계로 기다린다.**
+
+```gdscript
+var deadline_msec: int = Time.get_ticks_msec() + int(ceil(min_interval * 1000.0)) + 5
+while Time.get_ticks_msec() < deadline_msec:
+    await get_tree().process_frame
+```
+
+솎아내기가 `Time.get_ticks_msec()` 을 보므로 대기도 같은 시계로 한다. 두 시계를
+섞으면 그 차이만큼이 그대로 판정 오차가 된다.
+
+### 5-3. 솎아내기가 있으면 앞 케이스의 잔여 상태가 판정을 가린다
+
+**고장 주입 10건 중 1건을 놓쳤다.** `player.gd` 의 `_die()` 뒤 `return` 을 지워
+죽는 프레임에도 피격음이 나게 만들었는데 테스트가 통과했다.
+
+원인: 케이스가 피해 → 사망 순서로 두 번 때리는데, `hurt` 의 최소 간격이 150ms 라
+**고장이 없어도 두 번째 피격음은 어차피 솎였다.** 그러니 검사한 것은 "죽는 프레임에
+소리를 안 낸다"가 아니라 "솎아내기가 동작한다" 였다.
+
+고치는 방법은 죽이기 직전에 `reset_counters()` 를 한 번 더 부르는 것이다. 그러면
+솎아내기가 원인일 가능성이 사라져 남는 건 `return` 하나뿐이다.
+
+> 일반화하면: **억제 장치가 있는 코드를 검사할 때는, 그 억제가 꺼진 상태에서 봐야
+> 한다.** 아니면 억제가 결함을 대신 가려 주고 테스트는 초록불을 준다.
+
+## 6. 검증
+
+| 항목 | 결과 |
+|---|---|
+| 전체 스위트 | **24개 / 156케이스 전부 통과** (오디오 13 신규) |
+| 고장 주입 | **10건 전부 FAIL 확인** (1건은 케이스를 고친 뒤) |
+| 실기 창 모드 40초 | 오디오 관련 에러 없음, 2391프레임 / 39.86초 = **60fps (vsync)** |
+| 종료 시 누수 | ObjectDB 2개 — 8초 실행에서도 2개다. **늘지 않는다** (종료 순서 문제) |
+
+고장 주입 10건:
+
+| 고장 | 잡은 케이스 |
+|---|---|
+| 발사 호출 삭제 | `firing_calls_the_sound` |
+| 사망음 호출 삭제 | `damage_and_death_call_the_sounds`, `game_start_and_death_drive_the_music` |
+| 죽는 프레임에도 피격음 | `damage_and_death_call_the_sounds` (케이스 수정 후) |
+| 배경음악 반복 끄기 | `music_loops_and_can_be_stopped` |
+| 시작 시 음악 안 켬 | `game_start_and_death_drive_the_music` |
+| 솎아내기 삭제 | `repeat_calls_are_throttled` |
+| 재생기 풀 무한 증식 | `pool_is_bounded` |
+| SFX 버스를 Master 로 안 보냄 | `buses_are_configured` |
+| 효과음 하나 등록 누락 | `every_sfx_file_is_registered`, `damage_and_death_call_the_sounds` |
+| 음량 0 을 -inf 로 전달 | `volume_controls_reach_the_buses` |
+
+**밸런스는 건드리지 않았다.** 이번 작업은 수치에 닿는 곳이 하나도 없다.
+
+## 7. 남긴 것
+
+- **음량 설정 UI 가 없다.** API (`set_music_volume` / `set_sfx_volume` / `set_muted`)
+  는 있고 테스트도 있는데 부를 화면이 없다. 일시정지 메뉴에 붙이는 게 자연스럽다
+- **설정이 저장되지 않는다.** 껐다 켜면 기본값으로 돌아온다
+- 젬 획득음이 없다. 초당 수십 개씩 먹으므로 넣으려면 솎아내기를 아주 세게 걸어야 한다
+- 배경음악이 한 곡뿐이다. 보스 등장 같은 데서 바꿀 자리가 있다

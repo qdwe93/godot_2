@@ -285,14 +285,18 @@ func _test_damage_and_death_call_the_sounds() -> void:
 	var death_after_damage: int = int(_audio.get_play_count(&"death"))
 
 	player.call(&"advance_invincibility", 10.0)
+	# **여기서 반드시 다시 초기화한다.** `hurt` 는 최소 간격이 150ms 라, 바로 위
+	# 피해에서 이미 한 번 났다는 이유만으로 솎여 버린다. 그러면 "죽는 프레임에
+	# 피격음을 내지 않는다"를 검사하는 게 아니라 솎아내기를 검사하는 꼴이 되고,
+	# 실제로 `_die()` 뒤의 `return` 을 지워도 이 케이스가 통과했다.
+	_audio.reset_counters()
 	player.call(&"take_damage", 999999.0)
-	var hurt_after_death: int = int(_audio.get_play_count(&"hurt"))
-	var death_after_death: int = int(_audio.get_play_count(&"death"))
+	var hurt_on_death: int = int(_audio.get_play_count(&"hurt"))
+	var death_on_death: int = int(_audio.get_play_count(&"death"))
 
 	player.queue_free()
-	# 죽는 프레임에는 피격음이 늘지 않아야 한다 — 사망음과 겹치면 둘 다 뭉개진다.
-	var passed: bool = hurt_after_damage == 1 and death_after_damage == 0 and hurt_after_death == 1 and death_after_death == 1
-	_record_case("damage_and_death_call_the_sounds", passed, "hurt=%d->%d death=%d->%d" % [hurt_after_damage, hurt_after_death, death_after_damage, death_after_death])
+	var passed: bool = hurt_after_damage == 1 and death_after_damage == 0 and hurt_on_death == 0 and death_on_death == 1
+	_record_case("damage_and_death_call_the_sounds", passed, "damage(hurt=%d death=%d) death_frame(hurt=%d death=%d)" % [hurt_after_damage, death_after_damage, hurt_on_death, death_on_death])
 
 
 func _test_game_start_and_death_drive_the_music() -> void:
