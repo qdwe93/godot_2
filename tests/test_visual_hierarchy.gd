@@ -1,7 +1,7 @@
 extends Node
 
 
-const EXPECTED_CASE_COUNT: int = 4
+const EXPECTED_CASE_COUNT: int = 5
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const PLAYER_SCENE: PackedScene = preload("res://scenes/player.tscn")
 const XP_GEM_SCENE: PackedScene = preload("res://scenes/xp_gem.tscn")
@@ -43,8 +43,55 @@ func _run_tests() -> void:
 	_test_every_element_meets_minimum_contrast(colours)
 	_test_player_is_brightest(colours)
 	_test_enemy_variants_have_distinct_shapes()
+	_test_world_draw_order()
 	await _dispose_main()
 	_finish()
+
+
+
+## 세계의 **그리기 순서**가 못박혀 있는가.
+##
+## 예전에는 월드 컨테이너의 z_index 가 전부 0 이라 그리는 순서가 곧 **씬 트리 순서**였다.
+## 그래서 젬(PickupContainer)이 적(EnemyContainer)보다 씬에서 나중에 나온다는 이유만으로
+## 적 위에 그려졌고, 몹이 경험치 구슬 뒤로 지나가는 것처럼 보였다. 사용자가 실기에서
+## 지적한 문제다.
+##
+## **숫자를 검사하지 않는다.** 검사하는 것은 순서다 — 값은 얼마든 조정할 수 있어야 한다.
+func _test_world_draw_order() -> void:
+	# 아래에서 위로. 이 순서가 뒤집히면 무언가가 엉뚱한 것 뒤로 숨는다.
+	var expected_order: Array[String] = [
+		"PickupContainer",    # 젬은 바닥에 떨어져 있다
+		"EnemyContainer",
+		"Player",
+		"ProjectileContainer",
+		"EffectContainer",
+	]
+	var offenders: PackedStringArray = []
+	var readings: PackedStringArray = []
+	var previous_z: int = -2147483648
+	var previous_name: String = ""
+	for node_name in expected_order:
+		var node: CanvasItem = _main.get_node_or_null(node_name) as CanvasItem
+		if node == null:
+			offenders.append("%s(없음)" % node_name)
+			continue
+		readings.append("%s=%d" % [node_name, node.z_index])
+		if node.z_index <= previous_z:
+			offenders.append("%s(%d) <= %s(%d)" % [node_name, node.z_index, previous_name, previous_z])
+		previous_z = node.z_index
+		previous_name = node_name
+
+	# 바닥은 무엇보다도 아래여야 한다.
+	var ground: CanvasItem = _main.get_node_or_null("Ground") as CanvasItem
+	if ground == null:
+		offenders.append("Ground(없음)")
+	else:
+		readings.append("Ground=%d" % ground.z_index)
+		if ground.z_index >= previous_z:
+			offenders.append("Ground(%d) 가 맨 아래가 아니다" % ground.z_index)
+
+	_record_case("world_draw_order", offenders.is_empty(),
+		"%s %s" % [" ".join(readings), "ok" if offenders.is_empty() else ",".join(offenders)])
 
 
 func _read_visual_colours() -> Dictionary:

@@ -1,6 +1,6 @@
 extends Node
 
-const EXPECTED_CASE_COUNT: int = 14
+const EXPECTED_CASE_COUNT: int = 16
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const ENEMY_SCENE: PackedScene = preload("res://scenes/enemy.tscn")
 const PROJECTILE_SCRIPT: Script = preload("res://scripts/projectile.gd")
@@ -39,6 +39,8 @@ func _run_suite() -> void:
 	_test_pause_is_refused_during_level_up(game_flow, level_up_ui)
 	_test_timer_is_centred_and_large(time_label)
 	_test_menu_buttons_are_opaque(game_flow)
+	_test_level_up_screen_covers_the_hud(level_up_ui)
+	await _test_hud_clock_respects_pause()
 	_test_health_bar_starts_full(player, health_bar)
 	await _test_health_bar_follows_the_player(player, health_bar)
 	await _test_health_bar_reflects_damage(player, health_bar)
@@ -204,6 +206,76 @@ func _test_menu_buttons_are_opaque(game_flow: Node) -> void:
 		"menu_buttons_are_opaque",
 		offenders.is_empty(),
 		"검사 %d개 %s" % [paths.size(), "ok" if offenders.is_empty() else ",".join(offenders)]
+	)
+
+
+
+## 레벨업 화면이 HUD 를 **덮는가.**
+##
+## CanvasLayer 끼리 `layer` 가 같으면 그리는 순서가 **씬 트리 순서**로 정해진다.
+## main.tscn 에서 LevelUpUI 가 HUD 보다 먼저 나오므로, 둘 다 0 이면 HUD 가 위에 그려진다.
+## 그 결과 상단 한가운데로 커진 시계가 "스킬 선택" 제목을 정확히 덮었다 —
+## 사용자가 실기에서 지적한 문제다.
+##
+## **숫자를 검사하지 않는다.** layer 값은 조정할 수 있어야 한다. 검사하는 것은 순서다.
+func _test_level_up_screen_covers_the_hud(level_up_ui: CanvasLayer) -> void:
+	var hud: CanvasLayer = _main.get_node_or_null("HUD") as CanvasLayer
+	var joystick: CanvasLayer = _main.get_node_or_null("TouchJoystick") as CanvasLayer
+	var game_flow_layer: CanvasLayer = _main.get_node_or_null("GameFlow") as CanvasLayer
+	var offenders: PackedStringArray = []
+	if hud == null or joystick == null or game_flow_layer == null:
+		offenders.append("노드 없음")
+	else:
+		if level_up_ui.layer <= hud.layer:
+			offenders.append("HUD(%d) 를 안 덮는다" % hud.layer)
+		if level_up_ui.layer <= joystick.layer:
+			offenders.append("조이스틱(%d) 을 안 덮는다" % joystick.layer)
+		# 타이틀·게임오버는 레벨업보다도 위여야 한다. 사망 요약이 3택에 가리면 안 된다.
+		if game_flow_layer.layer <= level_up_ui.layer:
+			offenders.append("GameFlow(%d) 가 레벨업보다 아래다" % game_flow_layer.layer)
+	_record_case(
+		"level_up_screen_covers_the_hud",
+		offenders.is_empty(),
+		"level_up=%d hud=%d joystick=%d game_flow=%d %s" % [
+			level_up_ui.layer,
+			hud.layer if hud != null else -1,
+			joystick.layer if joystick != null else -1,
+			game_flow_layer.layer if game_flow_layer != null else -1,
+			"ok" if offenders.is_empty() else ",".join(offenders)]
+	)
+
+
+## HUD 시계가 **일시정지 중에 멈추는가.**
+##
+## HUD 는 process_mode = 3(ALWAYS)이라 일시정지 중에도 _process 가 돈다. 그래서 레벨업
+## 3택을 고르는 동안, 일시정지 메뉴를 열어 둔 동안 **HUD 시계만 혼자 흘렀다.**
+## 난이도를 정하는 EnemySpawner 의 시계는 멈춰 있으므로 둘이 점점 벌어지고,
+## 화면에 보이는 생존 시간이 실제보다 길어진다.
+##
+## 멈추는 것만 봐서는 부족하다 — process_mode 를 통째로 꺼도 통과하기 때문이다.
+## **다시 흐르는 것까지** 본다.
+func _test_hud_clock_respects_pause() -> void:
+	var hud: Node = _main.get_node_or_null("HUD")
+	if hud == null:
+		_record_case("hud_clock_respects_pause", false, "hud_missing")
+		return
+
+	get_tree().paused = true
+	var paused_before: float = float(hud.call(&"get_elapsed_time"))
+	for _frame in range(5):
+		await get_tree().process_frame
+	var paused_after: float = float(hud.call(&"get_elapsed_time"))
+
+	get_tree().paused = false
+	for _frame in range(5):
+		await get_tree().process_frame
+	var running_after: float = float(hud.call(&"get_elapsed_time"))
+
+	var ok: bool = is_equal_approx(paused_before, paused_after) and running_after > paused_after
+	_record_case(
+		"hud_clock_respects_pause",
+		ok,
+		"일시정지중 %.4f -> %.4f, 재개후 %.4f" % [paused_before, paused_after, running_after]
 	)
 
 

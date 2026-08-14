@@ -58,10 +58,18 @@ region_enabled = true
 region_rect = Rect2(-4096, -4096, 8192, 8192)
 
 [node name="EnemyContainer" type="Node2D" parent="."]
+; 그리는 순서를 z_index 로 못박는다. 예전에는 전부 0 이라 **씬 트리 순서**가 곧
+; 그리는 순서였고, 그래서 젬(PickupContainer)이 적보다 나중에 나온다는 이유만으로
+; 적 위에 그려졌다 — 몹이 경험치 구슬 뒤로 지나가는 것처럼 보였다.
+;
+; 바닥(-100) < 젬(-10) < 적(0) < 주인공(10) < 투사체(20) < 이펙트(30)
+z_index = 0
 
 [node name="ProjectileContainer" type="Node2D" parent="." groups=["projectile_container"]]
+z_index = 20
 
 [node name="PickupContainer" type="Node2D" parent="."]
+z_index = -10
 
 [node name="PickupSpawner" type="Node" parent="." groups=["pickup_spawner"]]
 script = ExtResource("7_pickup_spawner")
@@ -69,6 +77,7 @@ gem_scene = ExtResource("6_xp_gem")
 gem_container_path = NodePath("../PickupContainer")
 
 [node name="Player" parent="." instance=ExtResource("2_player")]
+z_index = 10
 position = Vector2(640, 360)
 
 [node name="EnemySpawner" type="Node" parent="."]
@@ -95,6 +104,7 @@ level_system_path = NodePath("../Player/LevelSystem")
 enemy_container_path = NodePath("../EnemyContainer")
 
 [node name="EffectContainer" type="Node2D" parent="."]
+z_index = 30
 
 [node name="EffectSpawner" type="Node" parent="."]
 script = ExtResource("14_effect_spawner")

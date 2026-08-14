@@ -40,10 +40,20 @@ func _ready() -> void:
 	_resolve_enemy_container()
 
 
+## HUD 시계는 **웨이브 시계와 같은 시간을 가리켜야 한다.**
+##
+## 이 노드는 process_mode = 3(ALWAYS)이라 일시정지 중에도 _process 가 돈다.
+## 그래서 레벨업 3택을 고르는 동안, 일시정지 메뉴를 열어 둔 동안, 게임오버 화면에서
+## **HUD 시계만 혼자 흘렀다.** 난이도를 결정하는 EnemySpawner 의 시계는 멈춰 있으므로
+## 둘이 점점 벌어지고, 화면에 보이는 "생존 시간"이 실제보다 길어진다.
+##
+## ALWAYS 를 끄면 안 된다 — 일시정지 중에도 체력·레벨 표시는 갱신돼야 한다.
+## 멈춰야 하는 것은 시계뿐이다.
 func _process(delta: float) -> void:
-	if not _timer_stopped:
-		_elapsed_time += delta
-		_update_time_display()
+	if _timer_stopped or get_tree().paused:
+		return
+	_elapsed_time += delta
+	_update_time_display()
 
 
 func _resolve_player() -> void:

@@ -232,11 +232,17 @@ func _case_level_up_ui_fits_and_is_tappable() -> void:
 	var arena: Vector2 = Arena.get_size(_main)
 	var offenders: PackedStringArray = []
 
-	var dimmer: Control = level_up_ui.get_node_or_null("Dimmer") as Control
+	var dimmer: ColorRect = level_up_ui.get_node_or_null("Dimmer") as ColorRect
 	if dimmer == null:
 		offenders.append("dimmer(missing)")
-	elif dimmer.size.x < arena.x - 1.0 or dimmer.size.y < arena.y - 1.0:
-		offenders.append("dimmer(%.0fx%.0f)" % [dimmer.size.x, dimmer.size.y])
+	else:
+		if dimmer.size.x < arena.x - 1.0 or dimmer.size.y < arena.y - 1.0:
+			offenders.append("dimmer(%.0fx%.0f)" % [dimmer.size.x, dimmer.size.y])
+		# 덮개는 **완전 불투명**이어야 한다. 반투명이면 뒤의 HUD 가 비치는데, 상단
+		# 한가운데로 커진 시계가 하필 "스킬 선택" 제목 자리에 정확히 겹쳐 유령처럼
+		# 남는다. 0.985 까지 올려도 큰 흰 글자에 굵은 외곽선이라 여전히 읽혔다.
+		if dimmer.color.a < 0.999:
+			offenders.append("dimmer(alpha=%.3f)" % dimmer.color.a)
 
 	# 위치만 재면 헤드리스에서 놓친다. 헤드리스 뷰포트는 기준 해상도와 폭이 같아
 	# **왼쪽 고정 오프셋과 가운데 정렬이 우연히 같은 자리에 온다.** 그래서 실기에서만

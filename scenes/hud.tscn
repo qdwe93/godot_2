@@ -1,4 +1,4 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/hud.gd" id="1_hud"]
 
@@ -9,6 +9,16 @@ bg_color = Color(0.11, 0.11, 0.14, 0.92)
 border_width_top = 2
 border_width_bottom = 2
 border_color = Color(0, 0, 0, 0.8)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_level_tab"]
+bg_color = Color(0.11, 0.11, 0.14, 0.92)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0, 0, 0, 0.8)
+content_margin_left = 10.0
+content_margin_right = 10.0
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_experience_fill"]
 bg_color = Color(0.35, 0.6, 1, 1)
@@ -32,30 +42,37 @@ color = Color(0.8, 0.05, 0.08, 1)
 modulate = Color(1, 1, 1, 0)
 
 ; 체력바는 주인공 발밑으로 옮겼다. HUD에도 두면 같은 정보를 중복 표시하게 된다.
+;
+; 경험치 바는 **화면 맨 위에 붙인다.** 아래(122)에 있을 때는 화면 가로를 지르는
+; 불투명한 띠가 놀이 영역 한복판을 가로질렀고, 적이 그 뒤로 지나가는 것이 어색했다.
+; HUD 는 CanvasLayer 라 무엇을 해도 항상 세계보다 위에 그려지므로, 겹침을 줄이는
+; 방법은 **띠를 화면 가장자리로 밀어내는 것**뿐이다.
 [node name="ExperienceBar" type="ProgressBar" parent="."]
 layout_mode = 1
 anchor_right = 1.0
-offset_left = 128.0
-offset_top = 122.0
-offset_right = -20.0
-offset_bottom = 146.0
+offset_left = 110.0
+offset_top = 6.0
+offset_right = -12.0
+offset_bottom = 28.0
 show_percentage = false
 mouse_filter = 2
 theme_override_styles/background = SubResource("StyleBoxFlat_bar_background")
 theme_override_styles/fill = SubResource("StyleBoxFlat_experience_fill")
 
 [node name="LevelLabel" type="Label" parent="."]
+; 경험치 바 왼쪽 끝에 붙는 탭. 레퍼런스의 `LV.3` 자리다.
 layout_mode = 1
-offset_left = 20.0
-offset_top = 118.0
-offset_right = 120.0
-offset_bottom = 150.0
+offset_left = 12.0
+offset_top = 6.0
+offset_right = 104.0
+offset_bottom = 28.0
+theme_override_styles/normal = SubResource("StyleBoxFlat_level_tab")
 theme_override_colors/font_color = Color(1, 0.83, 0.29, 1)
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 6
-theme_override_font_sizes/font_size = 24
+theme_override_font_sizes/font_size = 20
 text = "Lv.0"
-horizontal_alignment = 0
+horizontal_alignment = 1
 vertical_alignment = 1
 mouse_filter = 2
 
@@ -65,9 +82,9 @@ layout_mode = 1
 anchor_left = 0.5
 anchor_right = 0.5
 offset_left = -180.0
-offset_top = 16.0
+offset_top = 34.0
 offset_right = 180.0
-offset_bottom = 80.0
+offset_bottom = 98.0
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 10
 theme_override_font_sizes/font_size = 48
@@ -81,9 +98,9 @@ layout_mode = 1
 anchor_left = 1.0
 anchor_right = 1.0
 offset_left = -220.0
-offset_top = 24.0
+offset_top = 42.0
 offset_right = -20.0
-offset_bottom = 58.0
+offset_bottom = 76.0
 theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
 theme_override_constants/outline_size = 6
 theme_override_font_sizes/font_size = 26
