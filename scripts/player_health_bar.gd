@@ -2,7 +2,7 @@ extends ProgressBar
 
 # 72px 캐릭터의 실루엣을 가리지 않으면서 발밑에서 즉시 읽히는 크기와 간격이다.
 const BAR_SIZE: Vector2 = Vector2(96.0, 12.0)
-const BAR_OFFSET: Vector2 = Vector2(0.0, 48.0)
+const BAR_OFFSET: Vector2 = Vector2(0.0, 44.0)
 
 var _player: Node
 var _original_fill_style: StyleBox
@@ -37,6 +37,18 @@ func _ready() -> void:
 		_player.connect(&"died", Callable(self, &"_on_player_died"))
 
 	# 연결 직후 현재값을 채워 첫 피해 전에도 빈 체력바로 보이지 않게 한다.
+	#
+	# **반드시 지연 호출이어야 한다.** Godot 은 자식의 _ready() 를 부모보다 **먼저**
+	# 부른다. 그래서 여기서 바로 읽으면 player.gd 의 _ready() 가 아직 안 돌아
+	# `health` 가 0.0 이고, 체력이 가득인데도 바가 텅 빈 채로 남는다. 그 뒤로는
+	# 처음 피해를 입을 때까지 health_changed 가 발생하지 않으므로 (재생도 만렙에서는
+	# 신호를 쏘지 않는다) 빈 바가 계속 보인다. 실제로 캡처에서 이 상태로 잡혔다.
+	_refresh_from_player.call_deferred()
+
+
+func _refresh_from_player() -> void:
+	if _player == null or not is_instance_valid(_player):
+		return
 	var current_health: float = float(_player.get(&"health"))
 	var maximum_health: float = float(_player.get(&"max_health"))
 	_on_health_changed(current_health, maximum_health)

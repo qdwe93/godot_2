@@ -1,6 +1,6 @@
 extends Node
 
-const EXPECTED_CASE_COUNT: int = 12
+const EXPECTED_CASE_COUNT: int = 13
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
 const ENEMY_SCENE: PackedScene = preload("res://scenes/enemy.tscn")
 const PROJECTILE_SCRIPT: Script = preload("res://scripts/projectile.gd")
@@ -38,6 +38,7 @@ func _run_suite() -> void:
 	_test_pause_button_toggles_pause(game_flow)
 	_test_pause_is_refused_during_level_up(game_flow, level_up_ui)
 	_test_timer_is_centred_and_large(time_label)
+	_test_health_bar_starts_full(player, health_bar)
 	await _test_health_bar_follows_the_player(player, health_bar)
 	await _test_health_bar_reflects_damage(player, health_bar)
 	await _test_health_bar_turns_red_in_danger(player, health_bar)
@@ -159,6 +160,27 @@ func _test_timer_is_centred_and_large(time_label: Label) -> void:
 		ok,
 		"anchor_left=%.3f anchor_right=%.3f font_size=%d outline_size=%d"
 		% [time_label.anchor_left, time_label.anchor_right, font_size, outline_size]
+	)
+
+
+
+## 아무 일도 없었을 때 체력바가 **가득 차 있는가.**
+##
+## Godot 은 자식의 _ready() 를 부모보다 먼저 부른다. 그래서 체력바가 그 자리에서
+## player.health 를 읽으면 아직 0.0 이고, 체력이 가득인데 바가 텅 빈 채로 남는다.
+## 첫 피해를 입기 전까지는 health_changed 도 발생하지 않으므로 (재생은 만렙에서
+## 신호를 쏘지 않는다) 그 상태가 계속 간다. **에러는 하나도 안 난다.**
+##
+## 피해를 준 뒤를 보는 케이스로는 못 잡는다 — 피해가 신호를 쏘면서 값이 고쳐지기
+## 때문이다. 그래서 아무것도 하지 않은 상태를 따로 본다.
+func _test_health_bar_starts_full(player: Node2D, health_bar: ProgressBar) -> void:
+	var player_health: float = float(player.get(&"health"))
+	var player_max: float = float(player.get(&"max_health"))
+	var ok: bool = health_bar.max_value > 0.0 		and is_equal_approx(health_bar.value, health_bar.max_value) 		and is_equal_approx(health_bar.value, player_health) 		and is_equal_approx(player_health, player_max)
+	_record_case(
+		"health_bar_starts_full",
+		ok,
+		"bar=%.1f/%.1f player=%.1f/%.1f" % [health_bar.value, health_bar.max_value, player_health, player_max]
 	)
 
 
