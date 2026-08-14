@@ -241,10 +241,17 @@ func _case_level_up_ui_fits_and_is_tappable() -> void:
 			continue
 		if button.size.y < minimum_touch_height:
 			offenders.append("choice%d(h=%.0f)" % [index, button.size.y])
-		# 화면 가운데에 오는가. 고정 오프셋이면 넓은 화면에서 왼쪽으로 쏠린다.
-		var button_center_x: float = button.global_position.x + button.size.x * 0.5
-		if absf(button_center_x - arena.x * 0.5) > 8.0:
-			offenders.append("choice%d(cx=%.0f)" % [index, button_center_x])
+
+	# 가운데 정렬은 카드 낱장이 아니라 **묶음**으로 본다. M17에서 카드 3장을 가로로
+	# 늘어놓으면서 가운데 오는 것은 가운데 카드 하나뿐이 됐다. 낱장으로 재면
+	# 바깥 두 장이 항상 어긋난 것으로 나온다.
+	var choices: Control = level_up_ui.get_node_or_null("Choices") as Control
+	if choices == null:
+		offenders.append("choices(missing)")
+	else:
+		var choices_center_x: float = choices.global_position.x + choices.size.x * 0.5
+		if absf(choices_center_x - arena.x * 0.5) > 8.0:
+			offenders.append("choices(cx=%.0f)" % choices_center_x)
 
 	_record("level_up_ui_fits_and_is_tappable", offenders.is_empty(),
 		"arena=(%.0f,%.0f) min_touch=%.0f %s" % [

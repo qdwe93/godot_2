@@ -8,61 +8,263 @@ process_mode = 3
 visible = false
 
 [node name="Dimmer" type="ColorRect" parent="."]
-; 앵커로 뷰포트 전체를 덮는다. 예전에는 offset 으로 1280x720 을 고정하고 있어서
-; 갤럭시 S21(뷰포트 1600x720)에서 **오른쪽 320 단위가 안 덮였다.** 게임이 그 띠로
-; 그대로 비쳐 보였다.
-;
-; 앵커가 먹으려면 layout_mode = 1 이 필요하다. anchors_preset 은 에디터용 힌트라
-; 그것만 적으면 런타임에는 아무 일도 일어나지 않는다.
+; 앵커로 뷰포트 전체를 덮는다. offset 으로 1280x720 을 고정하면 화면비가 다른
+; 기기(S21 은 1600x720)에서 오른쪽이 안 덮이고 게임이 그대로 비친다.
+; 앵커가 먹으려면 layout_mode = 1 이 필요하다 — anchors_preset 은 에디터용 힌트다.
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0, 0, 0, 0.72)
+color = Color(0.04, 0.05, 0.07, 0.78)
 mouse_filter = 0
 
 [node name="Title" type="Label" parent="."]
-; 가로 전체를 차지하게 두고 horizontal_alignment 로 가운데 정렬한다.
-; 이러면 뷰포트 폭이 얼마든 항상 화면 한가운데에 온다.
+; 가로 전체를 차지하게 두고 가운데 정렬한다. 뷰포트 폭이 얼마든 항상 한가운데다.
 layout_mode = 1
 anchor_right = 1.0
-offset_top = 64.0
-offset_bottom = 148.0
-theme_override_font_sizes/font_size = 52
-text = "레벨 업!"
+offset_top = 22.0
+offset_bottom = 86.0
+theme_override_font_sizes/font_size = 44
+theme_override_colors/font_color = Color(1, 0.83, 0.29, 1)
+text = "스킬 선택"
 horizontal_alignment = 1
 vertical_alignment = 1
+mouse_filter = 2
 
-[node name="Choices" type="VBoxContainer" parent="."]
-; 화면 중앙 기준으로 폭 700, 높이 402(=3*118 + 2*24)를 잡는다.
+[node name="Slots" type="HBoxContainer" parent="."]
+; 보유 스킬 슬롯 바. 칸은 코드에서 UpgradeData 의 정의 순서대로 만든다 —
+; 여기에 칸을 하드코딩하면 업그레이드를 추가해도 슬롯이 안 늘어나는데 에러는 안 난다.
+layout_mode = 1
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -400.0
+offset_top = 96.0
+offset_right = 400.0
+offset_bottom = 152.0
+alignment = 1
+theme_override_constants/separation = 36
+mouse_filter = 2
+
+[node name="WeaponRow" type="HBoxContainer" parent="Slots"]
+layout_mode = 2
+theme_override_constants/separation = 8
+mouse_filter = 2
+
+[node name="PassiveRow" type="HBoxContainer" parent="Slots"]
+layout_mode = 2
+theme_override_constants/separation = 8
+mouse_filter = 2
+
+[node name="Choices" type="HBoxContainer" parent="."]
+; 카드 3장을 가로로 나란히. 세로 화면 레퍼런스와 달리 우리는 가로라
+; 카드를 옆으로 늘어놓는 편이 오히려 자연스럽다.
 layout_mode = 1
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = -350.0
-offset_top = -170.0
-offset_right = 350.0
-offset_bottom = 232.0
-theme_override_constants/separation = 24
+offset_left = -585.0
+offset_top = -190.0
+offset_right = 585.0
+offset_bottom = 270.0
+alignment = 1
+theme_override_constants/separation = 30
 
 [node name="Choice0" type="Button" parent="Choices"]
-; 터치 표적 크기. 118 단위는 S21 실기에서 약 177px(약 16mm)로, 엄지로 눌러도
-; 빗나가지 않는 크기다. 예전 48 단위는 약 7mm 라 너무 작았다.
-custom_minimum_size = Vector2(700, 118)
+; 카드 전체가 표적이다. 안의 라벨·아이콘은 mouse_filter = 2 로 클릭을 흘려보낸다.
+custom_minimum_size = Vector2(370, 460)
 layout_mode = 2
-theme_override_font_sizes/font_size = 30
+
+[node name="Body" type="VBoxContainer" parent="Choices/Choice0"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
+theme_override_constants/separation = 8
+mouse_filter = 2
+
+[node name="Name" type="Label" parent="Choices/Choice0/Body"]
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+theme_override_colors/font_color = Color(1, 0.83, 0.29, 1)
+horizontal_alignment = 1
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Icon" type="TextureRect" parent="Choices/Choice0/Body"]
+custom_minimum_size = Vector2(0, 170)
+layout_mode = 2
+size_flags_vertical = 3
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Desc" type="Label" parent="Choices/Choice0/Body"]
+custom_minimum_size = Vector2(0, 84)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+autowrap_mode = 3
+horizontal_alignment = 1
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Stars" type="HBoxContainer" parent="Choices/Choice0/Body"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 4
+mouse_filter = 2
+
+[node name="NewBadge" type="Label" parent="Choices/Choice0"]
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -104.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = 40.0
+theme_override_font_sizes/font_size = 24
+theme_override_colors/font_color = Color(0.55, 0.9, 0.35, 1)
+text = "New!"
+horizontal_alignment = 2
+vertical_alignment = 1
+mouse_filter = 2
 
 [node name="Choice1" type="Button" parent="Choices"]
-custom_minimum_size = Vector2(700, 118)
+custom_minimum_size = Vector2(370, 460)
 layout_mode = 2
-theme_override_font_sizes/font_size = 30
+
+[node name="Body" type="VBoxContainer" parent="Choices/Choice1"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
+theme_override_constants/separation = 8
+mouse_filter = 2
+
+[node name="Name" type="Label" parent="Choices/Choice1/Body"]
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+theme_override_colors/font_color = Color(1, 0.83, 0.29, 1)
+horizontal_alignment = 1
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Icon" type="TextureRect" parent="Choices/Choice1/Body"]
+custom_minimum_size = Vector2(0, 170)
+layout_mode = 2
+size_flags_vertical = 3
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Desc" type="Label" parent="Choices/Choice1/Body"]
+custom_minimum_size = Vector2(0, 84)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+autowrap_mode = 3
+horizontal_alignment = 1
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Stars" type="HBoxContainer" parent="Choices/Choice1/Body"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 4
+mouse_filter = 2
+
+[node name="NewBadge" type="Label" parent="Choices/Choice1"]
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -104.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = 40.0
+theme_override_font_sizes/font_size = 24
+theme_override_colors/font_color = Color(0.55, 0.9, 0.35, 1)
+text = "New!"
+horizontal_alignment = 2
+vertical_alignment = 1
+mouse_filter = 2
 
 [node name="Choice2" type="Button" parent="Choices"]
-custom_minimum_size = Vector2(700, 118)
+custom_minimum_size = Vector2(370, 460)
 layout_mode = 2
-theme_override_font_sizes/font_size = 30
+
+[node name="Body" type="VBoxContainer" parent="Choices/Choice2"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 12.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = -12.0
+theme_override_constants/separation = 8
+mouse_filter = 2
+
+[node name="Name" type="Label" parent="Choices/Choice2/Body"]
+custom_minimum_size = Vector2(0, 54)
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+theme_override_colors/font_color = Color(1, 0.83, 0.29, 1)
+horizontal_alignment = 1
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Icon" type="TextureRect" parent="Choices/Choice2/Body"]
+custom_minimum_size = Vector2(0, 170)
+layout_mode = 2
+size_flags_vertical = 3
+expand_mode = 1
+stretch_mode = 5
+mouse_filter = 2
+
+[node name="Desc" type="Label" parent="Choices/Choice2/Body"]
+custom_minimum_size = Vector2(0, 84)
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+autowrap_mode = 3
+horizontal_alignment = 1
+vertical_alignment = 1
+mouse_filter = 2
+
+[node name="Stars" type="HBoxContainer" parent="Choices/Choice2/Body"]
+custom_minimum_size = Vector2(0, 44)
+layout_mode = 2
+alignment = 1
+theme_override_constants/separation = 4
+mouse_filter = 2
+
+[node name="NewBadge" type="Label" parent="Choices/Choice2"]
+layout_mode = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -104.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = 40.0
+theme_override_font_sizes/font_size = 24
+theme_override_colors/font_color = Color(0.55, 0.9, 0.35, 1)
+text = "New!"
+horizontal_alignment = 2
+vertical_alignment = 1
+mouse_filter = 2
 
 [connection signal="pressed" from="Choices/Choice0" to="." method="_on_choice_0_pressed"]
+
 [connection signal="pressed" from="Choices/Choice1" to="." method="_on_choice_1_pressed"]
+
 [connection signal="pressed" from="Choices/Choice2" to="." method="_on_choice_2_pressed"]
