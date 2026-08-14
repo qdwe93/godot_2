@@ -1,7 +1,9 @@
 extends Node
 
-const EXPECTED_CASE_COUNT: int = 11
+const EXPECTED_CASE_COUNT: int = 12
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
+const ENEMY_SCENE: PackedScene = preload("res://scenes/enemy.tscn")
+const PROJECTILE_SCRIPT: Script = preload("res://scripts/projectile.gd")
 const DAMAGE_NUMBER_LIFETIME: float = preload("res://scripts/damage_number.gd").LIFETIME
 
 var _main: Node
@@ -42,6 +44,7 @@ func _run_suite() -> void:
 	await _test_damage_number_shows_the_amount()
 	await _test_damage_numbers_are_capped()
 	await _test_damage_numbers_expire()
+	await _test_projectile_hit_makes_a_damage_number()
 
 	get_tree().paused = false
 	_main.free()
@@ -327,6 +330,54 @@ func _test_damage_numbers_expire() -> void:
 	)
 	if is_instance_valid(created):
 		created.queue_free()
+
+
+
+## 스포너에 메서드가 **있는 것**과 게임이 **그것을 부르는 것**은 다른 문제다.
+##
+## 이 프로젝트에서 "정의는 있는데 게임에서 실행되지 않는" 버그가 세 번 나왔고
+## 전부 유닛 테스트를 통과했다 (산탄·궤도구 미노출, spawn_hit 호출처 0건,
+## 보스 드랍 메서드 이름 불일치). 그래서 여기서는 API 를 직접 부르지 않고
+## **실제 투사체가 적에 맞았을 때** 숫자가 뜨는지를 본다.
+func _test_projectile_hit_makes_a_damage_number() -> void:
+	var effect_spawner: Node = get_tree().get_first_node_in_group(&"effect_spawner")
+	var before: int = -1
+	if effect_spawner != null:
+		before = int(effect_spawner.call(&"get_active_damage_number_count"))
+
+	var enemy: CharacterBody2D = ENEMY_SCENE.instantiate() as CharacterBody2D
+	_main.get_node("EnemyContainer").add_child(enemy)
+	var projectile: Area2D = PROJECTILE_SCRIPT.new() as Area2D
+	projectile.set(&"damage", 12.0)
+	_main.add_child(projectile)
+	await get_tree().process_frame
+
+	projectile.call(&"_on_body_entered", enemy)
+	var after: int = -1
+	if effect_spawner != null:
+		after = int(effect_spawner.call(&"get_active_damage_number_count"))
+
+	# 방금 뜬 숫자가 이 투사체의 피해량을 들고 있는가. 개수만 세면 다른 경로에서
+	# 우연히 하나 생긴 것과 구별되지 않는다.
+	var newest_text: String = ""
+	for node in get_tree().get_nodes_in_group(&"damage_numbers"):
+		if node.has_method(&"get_amount_text"):
+			newest_text = str(node.call(&"get_amount_text"))
+
+	var ok: bool = effect_spawner != null and after == before + 1 and newest_text == "12"
+	_record_case(
+		"projectile_hit_makes_a_damage_number",
+		ok,
+		"before=%d after=%d newest_text=%s" % [before, after, newest_text]
+	)
+
+	for node in get_tree().get_nodes_in_group(&"damage_numbers"):
+		node.queue_free()
+	if is_instance_valid(enemy):
+		enemy.queue_free()
+	if is_instance_valid(projectile):
+		projectile.queue_free()
+	await get_tree().process_frame
 
 
 func _count_stopping_control_descendants(node: Node) -> int:
