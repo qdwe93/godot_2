@@ -213,7 +213,9 @@ func _case_card_children_do_not_eat_taps() -> void:
 			continue
 		for node in _descendants(card):
 			var control: Control = node as Control
-			if control != null and control.mouse_filter != Control.MOUSE_FILTER_IGNORE:
+			# STOP 만 실제로 터치를 삼킨다. PASS 는 부모까지 흘려보내므로 무해하다.
+			# 무해한 설정까지 실패로 만들면 나중에 이 테스트가 방해만 된다.
+			if control != null and control.mouse_filter == Control.MOUSE_FILTER_STOP:
 				offenders.append("Choice%d/%s(filter=%d)" % [index, control.name, control.mouse_filter])
 	_record("card_children_do_not_eat_taps", offenders.is_empty(),
 		"ok" if offenders.is_empty() else ",".join(offenders))
