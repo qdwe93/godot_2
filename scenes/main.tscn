@@ -41,7 +41,8 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.08, 0.08, 0.1, 1)
+; 실제 기준값은 BackgroundGrid.read_tile_mean_colour()가 실행 중에 구하며 이 값은 편집기 미리보기용이다.
+color = Color(0.663, 0.639, 0.769, 1)
 mouse_filter = 2
 
 [node name="Ground" type="Sprite2D" parent="."]

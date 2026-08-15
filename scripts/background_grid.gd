@@ -20,14 +20,43 @@ extends Sprite2D
 ## 동작을 확신할 수 있다.
 
 ## 타일 한 칸의 크기. tools/make_ground_tile.py 의 TILE 과 같아야 한다.
-const TILE_SIZE: float = 256.0
+const TILE_SIZE: float = 512.0
 
-## 격자 선의 색. tools/make_ground_tile.py 의 GRID_TINT 와 같아야 한다.
-##
-## **이 색이 게임에서 가장 밝은 배경 톤이다.** 즉 모든 대비 계산의 최악값 기준이며,
-## `tools/check_sprite_luminance.py` 와 `tests/test_visual_hierarchy.gd` 가
-## 이 값을 읽어 쓴다. 더 밝게 바꾸면 어두운 요소(투사체)가 3:1 아래로 떨어진다.
-const GRID_TINT: Color = Color(0.118, 0.118, 0.149)
+## 바닥색의 유일한 원본은 타일 PNG다. `tools/check_sprite_luminance.py` 도 그 PNG에서
+## 실제 톤을 직접 읽으므로 손으로 옮겨 적은 색이 서로 어긋날 자리가 없다.
+
+
+static func read_tile_mean_colour() -> Color:
+	var tile_texture: Texture2D = load("res://assets/sprites/ground_tile.png") as Texture2D
+	if tile_texture == null:
+		push_error("바닥 타일 텍스처를 읽을 수 없다.")
+		return Color.BLACK
+	var tile_image: Image = tile_texture.get_image()
+	if tile_image == null or tile_image.is_empty():
+		push_error("바닥 타일 이미지를 읽을 수 없다.")
+		return Color.BLACK
+	var red_sum: float = 0.0
+	var green_sum: float = 0.0
+	var blue_sum: float = 0.0
+	var alpha_sum: float = 0.0
+	var sample_count: int = 0
+	for y in range(0, tile_image.get_height(), 4):
+		for x in range(0, tile_image.get_width(), 4):
+			var pixel: Color = tile_image.get_pixel(x, y)
+			red_sum += pixel.r
+			green_sum += pixel.g
+			blue_sum += pixel.b
+			alpha_sum += pixel.a
+			sample_count += 1
+	if sample_count == 0:
+		push_error("바닥 타일에서 평균색을 계산할 픽셀이 없다.")
+		return Color.BLACK
+	return Color(
+		red_sum / sample_count,
+		green_sum / sample_count,
+		blue_sum / sample_count,
+		alpha_sum / sample_count
+	)
 
 
 func _ready() -> void:
@@ -36,6 +65,11 @@ func _ready() -> void:
 	z_as_relative = false
 	texture_repeat = CanvasItem.TEXTURE_REPEAT_ENABLED
 	_follow_view()
+	# 언더레이는 타일이 뷰포트를 못 덮을 때만 보인다. 평균색을 맞추는 것이 그 실패를
+	# 검은 번쩍임 대신 보이지 않게 만드는 가장 싼 방법이다.
+	var underlay := get_node_or_null("../BackgroundLayer/Background") as ColorRect
+	if underlay != null:
+		underlay.color = read_tile_mean_colour()
 
 
 func _process(_delta: float) -> void:

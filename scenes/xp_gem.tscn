@@ -13,6 +13,15 @@ script = ExtResource("1_xp_gem")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_xp_gem")
 
+; 작은 요소는 clamp(표시 크기의 5%, 2px, 5px) 규칙에서 최솟값인 2px 외곽선을 쓴다.
+[node name="Outline" type="ColorRect" parent="."]
+offset_left = -12.0
+offset_top = -12.0
+offset_right = 12.0
+offset_bottom = 12.0
+color = Color(0.078, 0.078, 0.102, 1)
+mouse_filter = 2
+
 [node name="Sprite" type="ColorRect" parent="."]
 offset_left = -10.0
 offset_top = -10.0

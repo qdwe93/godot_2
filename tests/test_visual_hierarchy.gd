@@ -1,13 +1,12 @@
 extends Node
 
 
-const EXPECTED_CASE_COUNT: int = 5
+const EXPECTED_CASE_COUNT: int = 6
 const MAIN_SCENE: PackedScene = preload("res://scenes/main.tscn")
-const PLAYER_SCENE: PackedScene = preload("res://scenes/player.tscn")
 const XP_GEM_SCENE: PackedScene = preload("res://scenes/xp_gem.tscn")
 const PROJECTILE_SCENE: PackedScene = preload("res://scenes/projectile.tscn")
-const PLAYER_SCRIPT: Script = preload("res://scripts/player.gd")
-const BOSS_SPAWNER_SCRIPT: Script = preload("res://scripts/boss_spawner.gd")
+const ORBITAL_SCENE: PackedScene = preload("res://scenes/orbital.tscn")
+const GROUND_TILE: Texture2D = preload("res://assets/sprites/ground_tile.png")
 
 var _passed: int = 0
 var _failed: int = 0
@@ -21,7 +20,7 @@ func _ready() -> void:
 
 
 func _run_tests() -> void:
-	if MAIN_SCENE == null or PLAYER_SCENE == null or XP_GEM_SCENE == null or PROJECTILE_SCENE == null or BOSS_SPAWNER_SCRIPT == null:
+	if MAIN_SCENE == null or XP_GEM_SCENE == null or PROJECTILE_SCENE == null or ORBITAL_SCENE == null or GROUND_TILE == null:
 		print("TEST_ERROR setup_failed required visual resource could not be loaded")
 		_finish()
 		return
@@ -33,15 +32,11 @@ func _run_tests() -> void:
 	add_child(_main)
 	await get_tree().process_frame
 	await get_tree().process_frame
-	var colours: Dictionary = _read_visual_colours()
-	if colours.is_empty():
-		print("TEST_ERROR setup_failed could_not_read_visual_colours")
-		await _dispose_main()
-		_finish()
-		return
-	_test_brightness_order_is_correct(colours)
-	_test_every_element_meets_minimum_contrast(colours)
-	_test_player_is_brightest(colours)
+	var tone_luminances: PackedFloat32Array = _read_ground_tile_tone_luminances()
+	_test_ground_tile_value_band_is_narrow(tone_luminances)
+	_test_outlined_elements_clear_minimum_contrast(tone_luminances)
+	_test_colorrect_elements_are_outlined()
+	_test_background_underlay_follows_the_tile()
 	_test_enemy_variants_have_distinct_shapes()
 	_test_world_draw_order()
 	await _dispose_main()
@@ -94,97 +89,130 @@ func _test_world_draw_order() -> void:
 		"%s %s" % [" ".join(readings), "ok" if offenders.is_empty() else ",".join(offenders)])
 
 
-func _read_visual_colours() -> Dictionary:
-	# 배경은 BackgroundLayer(CanvasLayer) 아래로 옮겼다. Control 앵커가 Node2D 부모
-	# 밑에서는 동작하지 않아 화면비가 다른 기기에서 뷰포트를 못 덮었기 때문이다.
-	var background: ColorRect = _main.get_node_or_null("BackgroundLayer/Background") as ColorRect
-	var player: Node = PLAYER_SCENE.instantiate()
-	var gem: Node = XP_GEM_SCENE.instantiate()
-	var projectile: Node = PROJECTILE_SCENE.instantiate()
-	# 플레이어 스프라이트는 M15에서 텍스처가 됐다. 그림에 색이 구워져 있어 노드에서
-	# 읽을 수 없으므로 규칙상의 기준 색을 스크립트 상수에서 읽는다. 그림이 그 색과
-	# 실제로 맞는지는 tools/check_sprite_luminance.py 가 축소해서 잰다.
-	var player_colour: Color = Color(PLAYER_SCRIPT.BASE_SPRITE_COLOUR)
-	var gem_sprite: CanvasItem = gem.get_node_or_null("Sprite") as CanvasItem if gem != null else null
-	var projectile_sprite: CanvasItem = projectile.get_node_or_null("Sprite") as CanvasItem if projectile != null else null
-	var boss_spawner: Node = BOSS_SPAWNER_SCRIPT.new()
-	# ColorRect와 Polygon2D 둘 다 color 속성을 갖는다. 타입으로 못 박으면
-	# 스프라이트 노드 종류를 바꾸는 순간 테스트가 조용히 셋업 실패한다.
-	if background == null or boss_spawner == null or not _has_colour(gem_sprite) or not _has_colour(projectile_sprite):
-		if is_instance_valid(player):
-			player.queue_free()
-		if is_instance_valid(gem):
-			gem.queue_free()
-		if is_instance_valid(projectile):
-			projectile.queue_free()
-		return {}
-	var basic_type: Dictionary = WaveData.get_enemy_type(&"basic")
-	var fast_type: Dictionary = WaveData.get_enemy_type(&"fast")
-	var tank_type: Dictionary = WaveData.get_enemy_type(&"tank")
-	var boss_colour: Color = Color(boss_spawner.get("boss_color"))
-	boss_spawner.free()
-	var colours: Dictionary = {
-		"background": background.color,
-		"player": player_colour,
-		"boss": boss_colour,
-		"tank": Color(tank_type.get("color", Color.BLACK)),
-		"basic": Color(basic_type.get("color", Color.BLACK)),
-		"fast": Color(fast_type.get("color", Color.BLACK)),
-		"gem": _read_colour(gem_sprite),
-		"projectile": _read_colour(projectile_sprite),
-	}
-	player.queue_free()
-	gem.queue_free()
-	projectile.queue_free()
-	return colours
+func _read_ground_tile_tone_luminances() -> PackedFloat32Array:
+	var image: Image = GROUND_TILE.get_image()
+	if image == null or image.is_empty():
+		return PackedFloat32Array()
+	var luminances: Array[float] = []
+	for y in range(0, image.get_height(), 4):
+		for x in range(0, image.get_width(), 4):
+			luminances.append(_relative_luminance(image.get_pixel(x, y)))
+	if luminances.is_empty():
+		return PackedFloat32Array()
+	luminances.sort()
+	var dark_index: int = roundi((luminances.size() - 1) * 0.02)
+	var bright_index: int = roundi((luminances.size() - 1) * 0.98)
+	return PackedFloat32Array([luminances[dark_index], luminances[bright_index]])
 
 
-static func _has_colour(node: CanvasItem) -> bool:
-	if node == null:
-		return false
-	var value: Variant = node.get("color")
-	return value is Color
+func _test_ground_tile_value_band_is_narrow(tone_luminances: PackedFloat32Array) -> void:
+	# 이 명도 대역이 외곽선 전략 전체를 성립시킨다. #14141A의 휘도는 0.011이라 가장
+	# 어두운 바닥 휘도 0.133까지 3:1을 넘지만, 대역이 넓어져 그 선을 건너면 외곽선
+	# 두께를 아무리 늘려도 그 위의 스프라이트를 구할 수 없다.
+	if tone_luminances.size() != 2:
+		_record_case("ground_tile_value_band_is_narrow", false, "band=unreadable")
+		return
+	var dark_luminance: float = tone_luminances[0]
+	var bright_luminance: float = tone_luminances[1]
+	var passed: bool = (
+		dark_luminance >= 0.28
+		and dark_luminance <= 0.58
+		and bright_luminance >= 0.28
+		and bright_luminance <= 0.58
+	)
+	_record_case("ground_tile_value_band_is_narrow", passed,
+		"dark=%.4f bright=%.4f allowed=0.28..0.58" % [dark_luminance, bright_luminance])
 
 
-static func _read_colour(node: CanvasItem) -> Color:
-	var value: Variant = node.get("color")
-	if value is Color:
-		return value
-	return Color.BLACK
-
-
-func _test_brightness_order_is_correct(colours: Dictionary) -> void:
-	var ordered_names: Array[String] = ["player", "boss", "tank", "basic", "fast", "gem", "projectile"]
-	for index in range(ordered_names.size() - 1):
-		var brighter_name: String = ordered_names[index]
-		var darker_name: String = ordered_names[index + 1]
-		var brighter_luminance: float = _relative_luminance(Color(colours[brighter_name]))
-		var darker_luminance: float = _relative_luminance(Color(colours[darker_name]))
-		if brighter_luminance <= darker_luminance:
-			_record_case("brightness_order_is_correct", false, "%s=%.6f %s=%.6f" % [brighter_name, brighter_luminance, darker_name, darker_luminance])
+func _test_outlined_elements_clear_minimum_contrast(tone_luminances: PackedFloat32Array) -> void:
+	# 어두운 톤에서만 통과하고 밝은 톤에서 실패하는 것도 불합격이다. 타일이 밝아지는
+	# 자리마다 스프라이트가 사라진다면 바닥 전체에서 분리되는 외곽선이 아니기 때문이다.
+	if tone_luminances.size() != 2:
+		_record_case("outlined_elements_clear_minimum_contrast", false, "ground_tones=unreadable")
+		return
+	var definitions: Array[Dictionary] = _outlined_scene_definitions()
+	var readings: PackedStringArray = []
+	for definition in definitions:
+		var element_name: String = String(definition["name"])
+		var scene: PackedScene = definition["scene"] as PackedScene
+		var instance: Node = scene.instantiate() if scene != null else null
+		var outline: ColorRect = instance.get_node_or_null("Outline") as ColorRect if instance != null else null
+		if outline == null:
+			if instance != null:
+				instance.free()
+			_record_case("outlined_elements_clear_minimum_contrast", false, "%s tone=outline_missing" % element_name)
 			return
-	_record_case("brightness_order_is_correct", true, "ordered_elements=%d" % ordered_names.size())
+		var outline_luminance: float = _relative_luminance(outline.color)
+		for tone_index in range(2):
+			var tone_name: String = "dark" if tone_index == 0 else "bright"
+			var ratio: float = _contrast_ratio_from_luminances(outline_luminance, tone_luminances[tone_index])
+			readings.append("%s.%s=%.2f" % [element_name, tone_name, ratio])
+			if ratio < 3.0:
+				instance.free()
+				_record_case("outlined_elements_clear_minimum_contrast", false,
+					"%s tone=%s ratio=%.2f" % [element_name, tone_name, ratio])
+				return
+		instance.free()
+	_record_case("outlined_elements_clear_minimum_contrast", true, " ".join(readings))
 
 
-func _test_every_element_meets_minimum_contrast(colours: Dictionary) -> void:
-	var background: Color = Color(colours["background"])
-	var element_names: Array[String] = ["player", "boss", "tank", "basic", "fast", "gem", "projectile"]
-	for element_name in element_names:
-		var ratio: float = _contrast_ratio(Color(colours[element_name]), background)
-		if ratio < 3.0:
-			_record_case("every_element_meets_minimum_contrast", false, "%s ratio=%.2f" % [element_name, ratio])
+func _test_colorrect_elements_are_outlined() -> void:
+	# Outline이 Sprite보다 트리 뒤에 놓이면 채움을 받치는 대신 덮어 버린다. 오류 없이
+	# 짙은 사각형 하나로 렌더링되는 실수라서 노드 순서까지 함께 검사한다.
+	for definition in _outlined_scene_definitions():
+		var element_name: String = String(definition["name"])
+		var scene: PackedScene = definition["scene"] as PackedScene
+		var instance: Node = scene.instantiate() if scene != null else null
+		var outline: ColorRect = instance.get_node_or_null("Outline") as ColorRect if instance != null else null
+		var sprite: ColorRect = instance.get_node_or_null("Sprite") as ColorRect if instance != null else null
+		var valid: bool = outline != null and sprite != null
+		if valid:
+			valid = (
+				outline.get_index() < sprite.get_index()
+				and outline.offset_left < sprite.offset_left
+				and outline.offset_top < sprite.offset_top
+				and outline.offset_right > sprite.offset_right
+				and outline.offset_bottom > sprite.offset_bottom
+			)
+		if instance != null:
+			instance.free()
+		if not valid:
+			_record_case("colorrect_elements_are_outlined", false, "%s outline_order_or_size_invalid" % element_name)
 			return
-	_record_case("every_element_meets_minimum_contrast", true, "elements=%d minimum=3.0" % element_names.size())
+	_record_case("colorrect_elements_are_outlined", true, "elements=3 outline_before_sprite=true")
 
 
-func _test_player_is_brightest(colours: Dictionary) -> void:
-	var player_luminance: float = _relative_luminance(Color(colours["player"]))
-	for element_name in ["boss", "tank", "basic", "fast", "gem", "projectile"]:
-		var luminance: float = _relative_luminance(Color(colours[element_name]))
-		if player_luminance <= luminance:
-			_record_case("player_is_brightest", false, "player=%.6f %s=%.6f" % [player_luminance, element_name, luminance])
-			return
-	_record_case("player_is_brightest", true, "player=%.6f" % player_luminance)
+func _test_background_underlay_follows_the_tile() -> void:
+	# 언더레이는 손으로 옮긴 16진수라 타일과 어긋나곤 했다. 이 검사가 둘을 계속 한데
+	# 묶어 두어 바닥이 비는 순간에도 다른 색이 번쩍이지 않게 한다.
+	var underlay: ColorRect = _main.get_node_or_null("BackgroundLayer/Background") as ColorRect
+	if underlay == null:
+		_record_case("background_underlay_follows_the_tile", false, "underlay=missing")
+		return
+	var tile_mean: Color = BackgroundGrid.read_tile_mean_colour()
+	var difference: Color = Color(
+		absf(underlay.color.r - tile_mean.r),
+		absf(underlay.color.g - tile_mean.g),
+		absf(underlay.color.b - tile_mean.b),
+		absf(underlay.color.a - tile_mean.a)
+	)
+	var passed: bool = (
+		difference.r <= 0.04
+		and difference.g <= 0.04
+		and difference.b <= 0.04
+		and difference.a <= 0.04
+	)
+	_record_case("background_underlay_follows_the_tile", passed,
+		"underlay=%s tile_mean=%s max_channel_delta=%.4f" % [
+			underlay.color, tile_mean, maxf(maxf(difference.r, difference.g), maxf(difference.b, difference.a))])
+
+
+func _outlined_scene_definitions() -> Array[Dictionary]:
+	return [
+		{"name": "xp_gem", "scene": XP_GEM_SCENE},
+		{"name": "projectile", "scene": PROJECTILE_SCENE},
+		{"name": "orbital", "scene": ORBITAL_SCENE},
+	]
 
 
 func _test_enemy_variants_have_distinct_shapes() -> void:
@@ -222,9 +250,7 @@ static func _relative_luminance(colour: Color) -> float:
 	return 0.2126 * _srgb_to_linear(colour.r) + 0.7152 * _srgb_to_linear(colour.g) + 0.0722 * _srgb_to_linear(colour.b)
 
 
-static func _contrast_ratio(first: Color, second: Color) -> float:
-	var first_luminance: float = _relative_luminance(first)
-	var second_luminance: float = _relative_luminance(second)
+static func _contrast_ratio_from_luminances(first_luminance: float, second_luminance: float) -> float:
 	var lighter: float = maxf(first_luminance, second_luminance)
 	var darker: float = minf(first_luminance, second_luminance)
 	return (lighter + 0.05) / (darker + 0.05)

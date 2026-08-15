@@ -13,6 +13,14 @@ script = ExtResource("1_projectile")
 [node name="CollisionShape2D" type="CollisionShape2D" parent="."]
 shape = SubResource("CircleShape2D_projectile")
 
+[node name="Outline" type="ColorRect" parent="."]
+offset_left = -10.0
+offset_top = -10.0
+offset_right = 10.0
+offset_bottom = 10.0
+color = Color(0.078, 0.078, 0.102, 1)
+mouse_filter = 2
+
 [node name="Sprite" type="ColorRect" parent="."]
 offset_left = -8.0
 offset_top = -8.0

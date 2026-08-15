@@ -39,7 +39,7 @@ DEFAULT_CANDIDATES = [
     ("1E1E26", "현재 격자선"),
     ("3A3A4A", "살짝 밝게"),
     ("6A6480", "중간"),
-    ("A9A3C4", "레퍼런스급 밝은 회보라"),
+    ("A9A3C4", "레퍼런스급 — M22 채택"),
 ]
 
 
@@ -70,6 +70,10 @@ def main() -> int:
     else:
         candidates = DEFAULT_CANDIDATES
 
+    print("=" * 72)
+    print("경고: 이 수치는 M22 외곽선을 굽기 전에 측정한 값이다.")
+    print("타일이 만들어진 뒤에는 check_sprite_luminance.py의 실제 판정을 기준으로 삼는다.")
+    print("=" * 72)
     print("기준 %.1f:1 · 스프라이트 %d종" % (MIN_CONTRAST, len(SPRITE_LUMINANCE)))
     for hex_colour, label in candidates:
         background = relative_luminance(hex_to_rgb(hex_colour))
