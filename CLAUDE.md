@@ -568,6 +568,16 @@ python tools/check_sprite_luminance.py assets/sprites
 ```
 
 휘도(어두운 디테일)·충전율(슬롯 대비 크기)·밝기 순서 세 가지를 본다.
+
+**바닥 색을 바꾸기 전에는** `tools/contrast_preview.py` 로 먼저 계산한다. 그림을
+8장 다시 만들고 나서 재는 것은 너무 늦다.
+
+```bash
+python tools/contrast_preview.py A9A3C4
+```
+
+이미 잰 휘도를 가상의 배경에 굴려 본다. 후보를 고를 때는 이쪽, 결과를 판정할
+때는 `check_sprite_luminance.py` 다.
 대비 기준은 **가장 밝은 배경 톤**이다 — M16부터 ColorRect(#14141A)가 아니라 바닥
 격자선(#1E1E26)이 그 자리다. 격자를 더 밝게 바꾸면 투사체가 3:1 아래로 떨어진다.
 `.tscn`의 `Polygon2D`를 `Sprite2D`로 바꾸면 `enemy_spawner.gd`·`boss_spawner.gd`·`enemy.gd`의
