@@ -424,6 +424,14 @@ Android apk 첨부. M21이 릴리즈된 적이 없어 M21+M22를 한 릴리즈�
 5. `tests/test_visual_hierarchy.gd` 의 `colorrect_elements_are_outlined` 와
    `outlined_elements_clear_minimum_contrast` 를 같이 고친다
 
+📄 **작업지시서가 이미 쓰여 있다** — [`docs/work_orders/m23a-sprite-conversion.md`](work_orders/m23a-sprite-conversion.md).
+codex 에 그대로 파이프로 넘기면 된다. 표시 크기·scale 값·`.tscn` 함정·테스트 교체까지
+다 들어 있다.
+
+⚠️ **투사체는 진행 방향으로 회전해야 한다.** `projectile.gd` 는 `direction` 을 갖고
+있지만 `rotation` 을 한 번도 쓰지 않는다 — 지금까지는 정사각형이라 무의미했다.
+캡슐로 바꾸고 이걸 빠뜨리면 **모든 투사체가 항상 오른쪽을 가리키는데 에러는 안 난다.**
+
 ⚠️ **함정**: `Sprite2D` 에는 `color` 가 없어 주입이 **에러 없이 조용히 죽는다.**
 세 스크립트(`xp_gem.gd`/`projectile.gd`/`orbital.gd`)는 확인해 뒀고 `Sprite.color`
 를 안 건드린다. 하지만 `test_visual_hierarchy.gd` 가 `Sprite.color` 를 **읽으므로**
